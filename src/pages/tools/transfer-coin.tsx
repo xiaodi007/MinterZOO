@@ -64,7 +64,7 @@ export default function TransferTokensPage() {
     "verified",
   );
   const [search, setSearch] = useState("");
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* ----------------------------- fetch coins ----------------------------- */
 
@@ -80,13 +80,13 @@ export default function TransferTokensPage() {
         const meta = await client.getCoinMetadata({ coinType: b.coinType });
         return {
           coinType: b.coinType,
-          symbol: meta.symbol ?? "UNK",
-          name: meta.name ?? b.coinType.split("::").pop()!,
-          decimals: meta.decimals ?? 9,
-          iconUrl: meta.iconUrl ?? undefined,
+          symbol: meta?.symbol ?? "UNK",
+          name: meta?.name ?? b.coinType.split("::").pop()!,
+          decimals: meta?.decimals ?? 9,
+          iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
           verified:
-            !!meta.iconUrl || !!meta.name || !!meta.symbol || meta.decimals > 0,
+            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
         } satisfies CoinMeta;
       }),
     );
@@ -136,7 +136,7 @@ export default function TransferTokensPage() {
   }, [coins, filter, search]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     const sui = Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9;
     return sui.toFixed(4);
   }, [gasPrice]);
@@ -198,12 +198,12 @@ export default function TransferTokensPage() {
         ),
       );
       const source = coin.coinType === "0x2::sui::SUI" ? tx.gas : tx.object(coinObjects[coin.coinType]);
-      const [newCoin] = tx.splitCoins(source, base);
+      const [newCoin] = tx.splitCoins(source, [base]);
       tx.transferObjects([newCoin], tx.pure.address(recipient));
     });
 
     signAndExecute(
-      { transactionBlock: tx },
+      { transaction: tx },
       {
         onSuccess: () => {
           toast({ title: "✅ Transaction sent" });

@@ -73,7 +73,7 @@ const CSV_INPUT_ID = "csv-input-multi-transfer";
   const [search, setSearch] = useState("");
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState(""); // used only when equalSplit
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* ------------------------------ fetch coins ------------------------- */
 
@@ -86,13 +86,13 @@ const CSV_INPUT_ID = "csv-input-multi-transfer";
         const meta = await client.getCoinMetadata({ coinType: b.coinType });
         return {
           coinType: b.coinType,
-          symbol: meta.symbol ?? "UNK",
-          name: meta.name ?? b.coinType.split("::").pop()!,
-          decimals: meta.decimals ?? 9,
-          iconUrl: meta.iconUrl ?? undefined,
+          symbol: meta?.symbol ?? "UNK",
+          name: meta?.name ?? b.coinType.split("::").pop()!,
+          decimals: meta?.decimals ?? 9,
+          iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
           verified:
-            !!meta.iconUrl || !!meta.name || !!meta.symbol || meta.decimals > 0,
+            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol ,
         } satisfies CoinMeta;
       }),
     );
@@ -139,7 +139,7 @@ const CSV_INPUT_ID = "csv-input-multi-transfer";
   }, [coins, filter, search]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     return (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4);
   }, [gasPrice]);
 

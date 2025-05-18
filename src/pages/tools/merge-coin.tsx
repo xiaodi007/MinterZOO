@@ -73,7 +73,7 @@ export default function MergeTokensPage() {
 
   // tasks
   const [tasks, setTasks] = useState<MergeTask[]>([]);
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* ------------------------ fetch balances ------------------------- */
 const fetchCoins = useCallback(async () => {
@@ -101,14 +101,13 @@ const fetchCoins = useCallback(async () => {
       const meta = await client.getCoinMetadata({ coinType: b.coinType });
 
       return {
-        coinType: b.coinType,
-        symbol: meta.symbol ?? "UNK",
-        name: meta.name ?? b.coinType.split("::").pop()!,
-        decimals: meta.decimals ?? 9,
-        iconUrl: meta.iconUrl ?? undefined,
-        objectCount: count,     // ✅ 准确的 object 总数
-        verified:
-          !!meta.iconUrl || !!meta.name || !!meta.symbol || meta.decimals > 0,
+  coinType: b.coinType,
+  symbol:  meta?.symbol   ?? "UNK",
+  name:    meta?.name     ?? b.coinType.split("::").pop()!,
+  decimals:meta?.decimals ?? 9,
+  iconUrl: meta?.iconUrl  ?? undefined,
+  verified:
+    !!meta?.iconUrl || !!meta?.name || !!meta?.symbol || !!meta?.decimals,
       } as CoinMeta;
     }),
   );
@@ -155,7 +154,7 @@ const fetchCoins = useCallback(async () => {
   }, [coins, filter, search]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     return (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4);
   }, [gasPrice]);
 

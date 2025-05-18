@@ -44,7 +44,7 @@ export default function DeleteObjectPage() {
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
     "verified",
   );
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* ---------------------------- fetch objects -------------------------- */
   const fetchObjects = useCallback(async () => {
@@ -76,7 +76,7 @@ export default function DeleteObjectPage() {
           !!display.data?.image_url ||
           !!display.data?.description;
 
-        const typeStr = item.data?.content?.type ?? "";
+        const typeStr = (item.data?.content as any)?.type ?? "";
         const typeShort = typeStr.split("<", 1)[0].split("::").pop() ?? "Unknown";
 
         return {
@@ -135,7 +135,7 @@ export default function DeleteObjectPage() {
   }, [objects, filter, search]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     return (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(9);
   }, [gasPrice]);
 

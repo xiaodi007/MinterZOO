@@ -128,8 +128,8 @@ export default function CreateCoinForm() {
             });
 
             if (coinMeta.mintAmout > 0) {
-              const supply = BigInt(coinMeta.mintAmout) * 10n ** BigInt(coinMeta.decimals);
-              const treasuryCaps = await getTreasuryCapObjects(client, finalRes.effects.created);
+              const supply = BigInt(coinMeta.mintAmout) * BigInt(10) ** BigInt(coinMeta.decimals);
+              const treasuryCaps = await getTreasuryCapObjects(client, finalRes.effects!.created);
               if (!treasuryCaps.length) throw new Error("TreasuryCap not found");
 
               const tx2 = new Transaction();

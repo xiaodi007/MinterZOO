@@ -44,7 +44,7 @@ export default function DestroyZeroCoins() {
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
   const [zeroCoins, setZeroCoins] = useState<ZeroCoin[]>([]);
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* -------------------- fetch zero-balance coins -------------------- */
 const scanWallet = useCallback(async () => {
@@ -72,7 +72,7 @@ const scanWallet = useCallback(async () => {
       // ① 如果 totalBalance 为 0 —— 整页直接收
       // ② 如果 >0      —— 逐条判断 balance 是否为 0
       for (const c of page.data) {
-        if (b.totalBalance === "0" || BigInt(c.balance) === 0n) {
+        if (b.totalBalance === "0" || BigInt(c.balance) === BigInt(0)) {
           zeroList.push({
             objectId: c.coinObjectId,
             coinType: c.coinType,
@@ -96,7 +96,7 @@ const scanWallet = useCallback(async () => {
 
   const estRebateSui = useMemo(() => {
     // 每个 coin object 销毁返还  storage_rebate ≈ 110_000_000 mist  (当前 mainnet)
-    const mist = BigInt(zeroCoins.length) * 110_000_000n;
+    const mist = BigInt(zeroCoins.length) * BigInt(110_000_000);
     return (Number(mist) / 1e9).toFixed(6);
   }, [zeroCoins]);
 
@@ -123,7 +123,7 @@ const groupedZero = useMemo(() => {
     const tx = new Transaction();
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
-    tx.deleteObjects(zeroCoins.map((c) => tx.object(c.objectId)));
+    // tx.deleteObjects(zeroCoins.map((c) => tx.object(c.objectId)));
 
 
     signAndExecute(

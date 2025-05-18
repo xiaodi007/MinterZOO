@@ -49,7 +49,7 @@ export default function TransferObjectPage() {
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
     "verified",
   );
-  const [gasPrice, setGasPrice] = useState<bigint>(0n); // mist / gas-unit
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0)); // mist / gas-unit
 
   /* ------------------------------------------------------------------ */
   /* fetch user objects                                                 */
@@ -84,7 +84,10 @@ export default function TransferObjectPage() {
           !!display.data?.image_url ||
           !!display.data?.description;
 
-        const typeStr = item.data?.content?.type ?? "";
+        const typeStr =
+  item.data?.content?.dataType === "moveObject"
+    ? item.data.content.type
+    : "";
         const typeShort =
           typeStr.split("<", 1)[0].split("::").pop() ?? "Unknown";
 
@@ -156,7 +159,7 @@ export default function TransferObjectPage() {
   }, [objects, filter, search]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     // (gasBudget * gasPrice) mist → SUI
     const mist = BigInt(GAS_BUDGET) * gasPrice;
     const sui = Number(mist) / 1e9;

@@ -75,7 +75,7 @@ export default function SplitTokenPage() {
   /** 任务列表 */
   const [tasks, setTasks] = useState<SplitTask[]>([]);
 
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* ----------------------------- fetch coins ------------------------ */
   const fetchCoins = useCallback(async () => {
@@ -87,13 +87,13 @@ export default function SplitTokenPage() {
         const meta = await client.getCoinMetadata({ coinType: b.coinType });
         return {
           coinType: b.coinType,
-          symbol: meta.symbol ?? "UNK",
-          name: meta.name ?? b.coinType.split("::").pop()!,
-          decimals: meta.decimals ?? 9,
-          iconUrl: meta.iconUrl ?? undefined,
+          symbol: meta?.symbol ?? "UNK",
+          name: meta?.name ?? b.coinType.split("::").pop()!,
+          decimals: meta?.decimals ?? 9,
+          iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
           verified:
-            !!meta.iconUrl || !!meta.name || !!meta.symbol || meta.decimals > 0,
+            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol ,
         } satisfies CoinMeta;
       }),
     );
@@ -148,7 +148,7 @@ export default function SplitTokenPage() {
     const balance = selected.totalBalance;
 
     const ok = balance >= totalBase;
-    const remainderBase = ok ? balance - totalBase : 0n;
+    const remainderBase = ok ? balance - totalBase : BigInt(0);
     const remainder = ok
       ? (Number(remainderBase) / 10 ** selected.decimals).toLocaleString()
       : "Insufficient";
@@ -156,7 +156,7 @@ export default function SplitTokenPage() {
   }, [selected, amount, pieces]);
 
   const estimatedGasSui = useMemo(() => {
-    if (gasPrice === 0n) return "—";
+    if (gasPrice === BigInt(0)) return "—";
     return (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4);
   }, [gasPrice]);
 
