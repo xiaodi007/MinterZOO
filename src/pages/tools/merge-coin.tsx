@@ -29,7 +29,7 @@ import Footer from "@/components/footer";
 
 import {
   fetchAllCoinsByType,
-} from "./utils";
+} from "@/utils/utils";
 
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */

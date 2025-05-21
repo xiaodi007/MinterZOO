@@ -28,7 +28,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { formatNumericInput } from "@/lib/utils";
 
-import { fetchAllCoinsByType, getTotalBalanceBigInt } from "./utils";
+import { fetchAllCoinsByType, getTotalBalanceBigInt } from "@/utils/utils";
 
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */

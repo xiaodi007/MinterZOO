@@ -33,7 +33,7 @@ import {
   fetchAllCoinsByType,
   getTotalBalanceBigInt,
   formatAmount,
-} from "./utils";
+} from "@/utils/utils";
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
