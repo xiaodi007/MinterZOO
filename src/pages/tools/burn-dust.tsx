@@ -47,47 +47,47 @@ export default function DestroyZeroCoins() {
   const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
 
   /* -------------------- fetch zero-balance coins -------------------- */
-const scanWallet = useCallback(async () => {
-  if (!account?.address) return;
+  const scanWallet = useCallback(async () => {
+    if (!account?.address) return;
 
-  const zeroList: ZeroCoin[] = [];
+    const zeroList: ZeroCoin[] = [];
 
-  // 1) 快速拿到所有 coinType 及总余额
-  const balances = await client.getAllBalances({ owner: account.address });
+    // 1) 快速拿到所有 coinType 及总余额
+    const balances = await client.getAllBalances({ owner: account.address });
 
-  for (const b of balances) {
-    // 防止超出批处理上限
-    if (zeroList.length >= MAX_BATCH) break;
+    for (const b of balances) {
+      // 防止超出批处理上限
+      if (zeroList.length >= MAX_BATCH) break;
 
-    // ------------- 针对该 coinType 分页遍历 coin objects -------------
-    let cursor: string | null | undefined = undefined;
-    do {
-      const page = await client.getCoins({
-        owner: account.address,
-        coinType: b.coinType,
-        cursor,
-        limit: 50,
-      });
+      // ------------- 针对该 coinType 分页遍历 coin objects -------------
+      let cursor: string | null | undefined = undefined;
+      do {
+        const page = await client.getCoins({
+          owner: account.address,
+          coinType: b.coinType,
+          cursor,
+          limit: 50,
+        });
 
-      // ① 如果 totalBalance 为 0 —— 整页直接收
-      // ② 如果 >0      —— 逐条判断 balance 是否为 0
-      for (const c of page.data) {
-        if (b.totalBalance === "0" || BigInt(c.balance) === BigInt(0)) {
-          zeroList.push({
-            objectId: c.coinObjectId,
-            coinType: c.coinType,
-            symbol: formatSymbol(c.coinType),
-          });
-          if (zeroList.length >= MAX_BATCH) break;
+        // ① 如果 totalBalance 为 0 —— 整页直接收
+        // ② 如果 >0      —— 逐条判断 balance 是否为 0
+        for (const c of page.data) {
+          if (b.totalBalance === "0" || BigInt(c.balance) === BigInt(0)) {
+            zeroList.push({
+              objectId: c.coinObjectId,
+              coinType: c.coinType,
+              symbol: formatSymbol(c.coinType),
+            });
+            if (zeroList.length >= MAX_BATCH) break;
+          }
         }
-      }
 
-      cursor = page.hasNextPage ? page.nextCursor : null;
-    } while (cursor && zeroList.length < MAX_BATCH);
-  }
+        cursor = page.hasNextPage ? page.nextCursor : null;
+      } while (cursor && zeroList.length < MAX_BATCH);
+    }
 
-  setZeroCoins(zeroList);
-}, [account?.address, client]);
+    setZeroCoins(zeroList);
+  }, [account?.address, client]);
 
   /* -------------------- gas price & storage rebate ------------------ */
   useEffect(() => {
@@ -100,21 +100,21 @@ const scanWallet = useCallback(async () => {
     return (Number(mist) / 1e9).toFixed(6);
   }, [zeroCoins]);
 
-const groupedZero = useMemo(() => {
-  const map = new Map<string, { coinType: string; symbol: string; icon?: string; count: number }>();
+  const groupedZero = useMemo(() => {
+    const map = new Map<string, { coinType: string; symbol: string; icon?: string; count: number }>();
 
-  zeroCoins.forEach((c) => {
-    const entry = map.get(c.coinType);
-    if (entry) {
-      entry.count += 1;
-    } else {
-      map.set(c.coinType, { ...c, count: 1 });
-    }
-  });
+    zeroCoins.forEach((c) => {
+      const entry = map.get(c.coinType);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        map.set(c.coinType, { ...c, count: 1 });
+      }
+    });
 
-  // 转成数组方便渲染 & 排序（按 count 倒序）
-  return [...map.values()].sort((a, b) => b.count - a.count);
-}, [zeroCoins]);
+    // 转成数组方便渲染 & 排序（按 count 倒序）
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [zeroCoins]);
 
   /* -------------------- tx ------------------------------------------ */
   const handleDestroy = async () => {
@@ -146,80 +146,82 @@ const groupedZero = useMemo(() => {
 
   /* -------------------- render -------------------------------------- */
   return (
-    <main className="max-w-5xl mx-auto py-8 px-4">
+    <main className="relative w-full min-h-screen mx-auto flex flex-col">
       <Header />
 
-      <Card className="bg-slate-800/60 border border-slate-700 p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <h2 className="text-xl font-semibold">Destroy Zero Coins</h2>
-          <Trash2 className="text-red-400" />
-        </div>
+      <section className="w-full max-w-6xl mx-auto py-8 px-4 flex-1">
 
-        <p className="text-sm mb-2">
-          {zeroCoins.length > 0
-            ? `Found ${zeroCoins.length} zero-balance coin objects`
-            : "No zero-balance coin objects detected"}
-        </p>
-
-        {/* list */}
-{groupedZero.length > 0 && (
-  <div className="h-64 overflow-y-auto border border-slate-600 rounded p-3 space-y-2">
-    {groupedZero.map((g) => (
-      <div
-        key={g.coinType}
-        className="flex items-center gap-3 bg-slate-700/40 px-3 py-[6px] rounded"
-      >
-        {/* icon */}
-        {g.icon ? (
-          <img src={g.icon} className="w-5 h-5 rounded-full" alt={g.symbol} />
-        ) : (
-          <div className="w-5 h-5 rounded-full bg-slate-600" />
-        )}
-
-        {/* symbol */}
-        <span className="flex-1 font-medium">{g.symbol}</span>
-
-        {/* count badge */}
-        <span className="text-xs bg-slate-600/70 rounded-full px-2 py-[1px]">
-          {g.count}
-        </span>
-      </div>
-    ))}
-  </div>
-)}
-
-        {/* rebate */}
-        {zeroCoins.length > 0 && (
-          <div className="text-sm mt-2">
-            Estimated rebate:{" "}
-            <span className="font-medium text-cyan-400">{estRebateSui} SUI</span>
+        <Card className="bg-slate-800/60 border border-slate-700 p-6 space-y-6">
+          <div className="flex justify-between items-start">
+            <h2 className="text-xl font-semibold">Destroy Zero Coins</h2>
+            <Trash2 className="text-red-400" />
           </div>
-        )}
 
-        {/* info banner */}
-        <div className="flex items-start gap-2 bg-slate-700/50 p-3 rounded text-sm">
-          <Info size={16} className="mt-[2px] text-cyan-300 shrink-0" />
-          <span>
-            This tool will delete up to <strong>1024</strong> zero-balance coin
-            objects in your wallet. You’ll receive the storage rebate in SUI.
-          </span>
+          <p className="text-sm mb-2">
+            {zeroCoins.length > 0
+              ? `Found ${zeroCoins.length} zero-balance coin objects`
+              : "No zero-balance coin objects detected"}
+          </p>
+
+          {/* list */}
+          {groupedZero.length > 0 && (
+            <div className="h-64 overflow-y-auto border border-slate-600 rounded p-3 space-y-2">
+              {groupedZero.map((g) => (
+                <div
+                  key={g.coinType}
+                  className="flex items-center gap-3 bg-slate-700/40 px-3 py-[6px] rounded"
+                >
+                  {/* icon */}
+                  {g.icon ? (
+                    <img src={g.icon} className="w-5 h-5 rounded-full" alt={g.symbol} />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-slate-600" />
+                  )}
+
+                  {/* symbol */}
+                  <span className="flex-1 font-medium">{g.symbol}</span>
+
+                  {/* count badge */}
+                  <span className="text-xs bg-slate-600/70 rounded-full px-2 py-[1px]">
+                    {g.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* rebate */}
+          {zeroCoins.length > 0 && (
+            <div className="text-sm mt-2">
+              Estimated rebate:{" "}
+              <span className="font-medium text-cyan-400">{estRebateSui} SUI</span>
+            </div>
+          )}
+
+          {/* info banner */}
+          <div className="flex items-start gap-2 bg-slate-700/50 p-3 rounded text-sm">
+            <Info size={16} className="mt-[2px] text-cyan-300 shrink-0" />
+            <span>
+              This tool will delete up to <strong>1024</strong> zero-balance coin
+              objects in your wallet. You’ll receive the storage rebate in SUI.
+            </span>
+          </div>
+
+          <Button
+            className="w-full bg-[#818cf8]"
+            onClick={handleDestroy}
+            disabled={zeroCoins.length === 0}
+          >
+            Destroy {zeroCoins.length > 0 && `(${zeroCoins.length})`}
+          </Button>
+        </Card>
+
+        {/* footer */}
+        <div className="mt-6 flex items-center gap-2 text-sm opacity-70">
+          Gas estimate: <img src="/images/sui.svg" className="w-4 h-4" />
+          {gasPrice ? (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4) : "—"}
         </div>
-
-        <Button
-          className="w-full"
-          onClick={handleDestroy}
-          disabled={zeroCoins.length === 0}
-        >
-          Destroy {zeroCoins.length > 0 && `(${zeroCoins.length})`}
-        </Button>
-      </Card>
-
-      {/* footer */}
-      <div className="mt-6 flex items-center gap-2 text-sm opacity-70">
-        Gas estimate: <img src="/images/sui.svg" className="w-4 h-4" />
-        {gasPrice ? (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4) : "—"}
-      </div>
-
+      </section>
       <Footer />
     </main>
   );

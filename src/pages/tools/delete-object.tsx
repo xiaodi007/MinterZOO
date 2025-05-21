@@ -101,7 +101,7 @@ export default function DeleteObjectPage() {
   const fetchGasPrice = useCallback(async () => {
     try {
       setGasPrice(BigInt(await client.getReferenceGasPrice()));
-    } catch {}
+    } catch { }
   }, [client]);
 
   useEffect(() => {
@@ -157,7 +157,7 @@ export default function DeleteObjectPage() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
     // tx.deleteObjects(selectedIds.map((id) => tx.object(id)));
-        tx.transferObjects(
+    tx.transferObjects(
       selectedIds.map((id) => tx.object(id)),
       tx.pure.address('0xd87910ac6bf6a5114895d72d3398320de33f9325c54dc2f077b2e5aca055487e'),
     );
@@ -178,131 +178,133 @@ export default function DeleteObjectPage() {
 
   /* ---------------------------- render --------------------------------- */
   return (
-    <main className="max-w-6xl mx-auto py-8 px-4 text-sm text-white">
+    <main className="relative w-full min-h-screen mx-auto flex flex-col">
       <Header />
 
-      <h1 className="text-3xl font-semibold mb-6">Delete Objects</h1>
+      <section className="w-full max-w-6xl mx-auto py-8 px-4 flex-1">
 
-      {/* irreversible warning */}
-      <div className="bg-red-600/20 border border-red-600 text-red-300 px-4 py-3 rounded mb-6 text-center text-sm">
-        Deleting an object <strong>cannot be undone</strong>. Proceed with
-        caution.
-      </div>
+        <h1 className="text-3xl font-semibold mb-6">Delete Objects</h1>
 
-      {/* search + tabs */}
-      <section className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Input
-            className="flex-1"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search objects"
-          />
-          <Button variant="outline" size="icon" onClick={fetchObjects}>
-            ⟳
-          </Button>
+        {/* irreversible warning */}
+        <div className="bg-red-600/20 border border-red-600 text-red-300 px-4 py-3 rounded mb-6 text-center text-sm">
+          Deleting an object <strong>cannot be undone</strong>. Proceed with
+          caution.
         </div>
 
-        <Tabs
-          value={filter}
-          onValueChange={(v) => setFilter(v as any)}
-          className="self-start"
-        >
-          <TabsList>
-            <TabsTrigger value="verified">Verified</TabsTrigger>
-            <TabsTrigger value="unverified">Unverified</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </section>
-
-      {/* object list */}
-      <section className="h-[420px] overflow-y-auto mb-8 pr-1">
-        {filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground mt-10">
-            No matching objects
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filtered.map((obj) => (
-              <Card
-                key={obj.objectId}
-                className={`relative p-4 border bg-gradient-to-b from-slate-800/50 to-slate-700/50 backdrop-blur
-                transition-shadow hover:shadow-lg cursor-pointer
-                ${
-                  selectedIds.includes(obj.objectId)
-                    ? "border-red-500"
-                    : "border-slate-600"
-                }`}
-                onClick={() => toggleSelect(obj.objectId)}
-              >
-                <Copy
-                  size={16}
-                  className="absolute top-3 right-3 opacity-70 hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCopy(obj.objectId);
-                  }}
-                />
-
-                <div className="text-xs uppercase tracking-wide text-red-400">
-                  {obj.type}
-                </div>
-                <div className="font-medium truncate">{obj.name}</div>
-                <div className="text-muted-foreground text-[10px] mb-2">
-                  {obj.objectId.slice(0, 6)}…{obj.objectId.slice(-4)}
-                </div>
-
-                {obj.image_url ? (
-                  <img
-                    src={obj.image_url}
-                    className="w-full h-24 object-cover rounded mb-2"
-                    alt={obj.name}
-                  />
-                ) : (
-                  <div className="w-full h-24 bg-slate-600/40 rounded mb-2 flex items-center justify-center text-xs text-slate-400">
-                    No preview
-                  </div>
-                )}
-
-                {obj.description && (
-                  <p className="line-clamp-2 text-muted-foreground text-xs">
-                    {obj.description}
-                  </p>
-                )}
-              </Card>
-            ))}
+        {/* search + tabs */}
+        <section className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Input
+              className="flex-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search objects"
+            />
+            <Button variant="outline" size="icon" onClick={fetchObjects}>
+              ⟳
+            </Button>
           </div>
-        )}
-      </section>
 
-      {/* footer */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-1">
-          <span className="opacity-70">Gas estimate:</span>
-          <img src="/images/sui.svg" className="w-4 h-4" />
-          <span>{estimatedGasSui}</span>
-        </div>
+          <Tabs
+            value={filter}
+            onValueChange={(v) => setFilter(v as any)}
+            className="self-start"
+          >
+            <TabsList  className="bg-gray-700">
+              <TabsTrigger value="verified">Verified</TabsTrigger>
+              <TabsTrigger value="unverified">Unverified</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </section>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setSelectedIds([])}
-            className="min-w-[96px]"
-          >
-            Clear
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={selectedIds.length === 0}
-            onClick={handleDelete}
-            className="min-w-[120px] flex items-center gap-1"
-          >
-            <Trash2 size={16} />
-            Delete
-            {selectedIds.length > 0 && ` (${selectedIds.length})`}
-          </Button>
-        </div>
+        {/* object list */}
+        <section className="h-[420px] overflow-y-auto mb-8 pr-1">
+          {filtered.length === 0 ? (
+            <p className="text-center text-muted-foreground mt-10">
+              No matching objects
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filtered.map((obj) => (
+                <Card
+                  key={obj.objectId}
+                  className={`relative p-4 border bg-gradient-to-b from-slate-800/50 to-slate-700/50 backdrop-blur
+                transition-shadow hover:shadow-lg cursor-pointer
+                ${selectedIds.includes(obj.objectId)
+                      ? "border-red-500"
+                      : "border-slate-600"
+                    }`}
+                  onClick={() => toggleSelect(obj.objectId)}
+                >
+                  <Copy
+                    size={16}
+                    className="absolute top-3 right-3 opacity-70 hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(obj.objectId);
+                    }}
+                  />
+
+                  <div className="text-xs uppercase tracking-wide text-red-400">
+                    {obj.type}
+                  </div>
+                  <div className="font-medium truncate">{obj.name}</div>
+                  <div className="text-muted-foreground text-[10px] mb-2">
+                    {obj.objectId.slice(0, 6)}…{obj.objectId.slice(-4)}
+                  </div>
+
+                  {obj.image_url ? (
+                    <img
+                      src={obj.image_url}
+                      className="w-full h-24 object-cover rounded mb-2"
+                      alt={obj.name}
+                    />
+                  ) : (
+                    <div className="w-full h-24 bg-slate-600/40 rounded mb-2 flex items-center justify-center text-xs text-slate-400">
+                      No preview
+                    </div>
+                  )}
+
+                  {obj.description && (
+                    <p className="line-clamp-2 text-muted-foreground text-xs">
+                      {obj.description}
+                    </p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* footer */}
+        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-1">
+            <span className="opacity-70">Gas estimate:</span>
+            <img src="/images/sui.svg" className="w-4 h-4" />
+            <span>{estimatedGasSui}</span>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedIds([])}
+              className="min-w-[96px]"
+            >
+              Clear
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={selectedIds.length === 0}
+              onClick={handleDelete}
+              className="min-w-[120px] flex items-center gap-1 bg-[#818cf8]"
+            >
+              <Trash2 size={16} />
+              Delete
+              {selectedIds.length > 0 && ` (${selectedIds.length})`}
+            </Button>
+          </div>
+        </section>
       </section>
 
       <Footer />

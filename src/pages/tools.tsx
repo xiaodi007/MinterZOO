@@ -16,15 +16,11 @@ import {
 
 export default function ToolsPage() {
   return (
-    <main
-      className={cn(
-        "relative w-full min-h-svh flex flex-col items-center justify-between max-w-6xl mx-auto px-4 py-12"
-      )}
-    >
+    <main className="relative w-full min-h-screen flex flex-col items-center justify-between mx-auto">
       <Header />
 
-      <section className="flex-1 w-full flex flex-col items-center">
-        <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3">
+      <section className="w-full max-w-4xl pb-20 flex-1 flex flex-col items-center justify-center text-center">
+        <h1 className="mt-10 text-5xl font-extrabold tracking-tight bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3">
           🧰 Asset&nbsp;Toolbox
         </h1>
         <p className="text-muted-foreground text-center max-w-2xl mb-12">
@@ -72,13 +68,13 @@ export default function ToolsPage() {
           />
         </ToolSection>
 
-        <ToolSection title="📝 Misc">
+        {/* <ToolSection title="📝 Misc">
           <ToolCard
             href="/tools/memo"
             label="Memo"
             icon={<FileText size={20} />}
           />
-        </ToolSection>
+        </ToolSection> */}
       </section>
 
       <Footer />
@@ -97,7 +93,7 @@ function ToolSection({
 }) {
   return (
     <div className="w-full mb-16">
-      <h2 className="text-2xl font-semibold mb-6">{title}</h2>
+      <h2 className="text-left text-2xl font-semibold mb-6">{title}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
         {children}
       </div>
@@ -126,9 +122,9 @@ function ToolCard({
           <Button
             variant="secondary"
             size="sm"
-            className="self-start gap-1 group-hover:translate-x-0.5 transition-transform"
+            className="pl-8 self-start gap-1 group-hover:translate-x-0.5 transition-transform"
           >
-            Open
+            Open 
             <ArrowRight size={14} />
           </Button>
         </CardContent>

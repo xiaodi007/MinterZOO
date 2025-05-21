@@ -25,6 +25,7 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { formatNumericInput } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* Helpers & types                                                    */
@@ -194,7 +195,7 @@ export default function TransferTokensPage() {
       const base = BigInt(
         Math.round(
           Number(amount) * 10 ** coin.decimals +
-            Number.EPSILON,
+          Number.EPSILON,
         ),
       );
       const source = coin.coinType === "0x2::sui::SUI" ? tx.gas : tx.object(coinObjects[coin.coinType]);
@@ -220,207 +221,211 @@ export default function TransferTokensPage() {
   /* ------------------------------------------------------------------ */
 
   return (
-    <main className="max-w-6xl mx-auto py-8 px-4 text-sm text-white">
+    <main className="relative w-full min-h-screen mx-auto flex flex-col">
       <Header />
-      <h1 className="text-3xl font-semibold mb-6">Transfer Tokens</h1>
 
-      {/* recipient */}
-      <section className="mb-8">
-        <label className="font-medium block mb-2">Recipient address</label>
-        <Input
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          placeholder="0x..."
-        />
-      </section>
+      <section className="w-full max-w-6xl mx-auto py-8 px-4 flex-1">
+        <h1 className="text-3xl font-semibold mb-6">Transfer Tokens</h1>
 
-      {/* rows */}
-      <section className="space-y-6 mb-8">
-        {rows.map((row, idx) => (
-          <Card
-            key={row.id}
-            className="p-4 bg-slate-800/50 backdrop-blur border border-slate-600 space-y-4 relative"
-          >
-            {rows.length > 1 && (
-              <X
-                size={16}
-                className="absolute top-3 right-3 cursor-pointer opacity-70 hover:opacity-100"
-                onClick={() => removeRow(row.id)}
-              />
-            )}
+        {/* recipient */}
+        <section className="mb-8">
+          <label className="font-medium block mb-2">Recipient address</label>
+          <Input
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="0x..."
+          />
+        </section>
 
-            {/* selector + amount */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* token selector */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-48 justify-between"
-                  >
-                    {row.coin ? row.coin.symbol : "Select token"}
-                    <ChevronDown size={16} className="ml-2" />
-                  </Button>
-                </PopoverTrigger>
+        {/* rows */}
+        <section className="space-y-6 mb-8">
+          {rows.map((row, idx) => (
+            <Card
+              key={row.id}
+              className="p-4 bg-slate-800/50 backdrop-blur border border-slate-600 space-y-4 relative"
+            >
+              {rows.length > 1 && (
+                <X
+                  size={16}
+                  className="absolute top-3 right-3 cursor-pointer opacity-70 hover:opacity-100"
+                  onClick={() => removeRow(row.id)}
+                />
+              )}
 
-                <PopoverContent className="w-[380px] p-4 space-y-3 bg-slate-800 border-slate-700">
-                  {/* search */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      className="flex-1"
-                      placeholder="Search tokens"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
+              {/* selector + amount */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* token selector */}
+                <Popover>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
-                      onClick={fetchCoins}
+                      className="w-full sm:w-48 justify-between"
                     >
-                      <RefreshCcw size={16} />
+                      {row.coin ? row.coin.symbol : "Select token"}
+                      <ChevronDown size={16} className="ml-2" />
                     </Button>
-                  </div>
+                  </PopoverTrigger>
 
-                  {/* tabs */}
-                  <Tabs
-                    value={filter}
-                    onValueChange={(v) => setFilter(v as any)}
-                    className="mb-2"
-                  >
-                    <TabsList>
-                      <TabsTrigger value="verified">Verified</TabsTrigger>
-                      <TabsTrigger value="unverified">Unverified</TabsTrigger>
-                      <TabsTrigger value="all">All</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-
-                  {/* list */}
-                  <div className="h-64 overflow-y-auto pr-1 space-y-1">
-                    {filteredCoins.map((c) => (
-                      <div
-                        key={c.coinType}
-                        onClick={() => {
-                          updateRow(row.id, { coin: c });
-                        }}
-                        className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-slate-700/60"
+                  <PopoverContent className="w-[380px] p-4 space-y-3 bg-slate-800 border-slate-700">
+                    {/* search */}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        className="flex-1"
+                        placeholder="Search tokens"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={fetchCoins}
                       >
-                        {/* icon */}
-                        {c.iconUrl ? (
-                          <img
-                            src={c.iconUrl}
-                            alt={c.symbol}
-                            className="w-7 h-7 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-slate-600" />
-                        )}
+                        <RefreshCcw size={16} />
+                      </Button>
+                    </div>
 
-                        <div className="flex-1">
-                          <div className="font-medium leading-none">
-                            {c.symbol}
-                          </div>
-                          <div className="text-xs opacity-70">{c.name}</div>
-                        </div>
+                    {/* tabs */}
+                    <Tabs
+                      value={filter}
+                      onValueChange={(v) => setFilter(v as any)}
+                      className="mb-2"
+                    >
+                      <TabsList>
+                        <TabsTrigger value="verified">Verified</TabsTrigger>
+                        <TabsTrigger value="unverified">Unverified</TabsTrigger>
+                        <TabsTrigger value="all">All</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
 
-                        <div className="text-right">
-                          <div>
-                            {(Number(c.totalBalance) / 10 ** c.decimals).toLocaleString()}
-                          </div>
-                          <div className="text-xs opacity-50 flex items-center gap-1">
-                            {c.coinType.slice(0, 4)}…{c.coinType.slice(-4)}
-                            <Copy
-                              size={12}
-                              className="cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigator.clipboard.writeText(c.coinType);
-                                toast({ title: "Copied" });
-                              }}
+                    {/* list */}
+                    <div className="h-64 overflow-y-auto pr-1 space-y-1">
+                      {filteredCoins.map((c) => (
+                        <div
+                          key={c.coinType}
+                          onClick={() => {
+                            updateRow(row.id, { coin: c });
+                          }}
+                          className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-slate-700/60"
+                        >
+                          {/* icon */}
+                          {c.iconUrl ? (
+                            <img
+                              src={c.iconUrl}
+                              alt={c.symbol}
+                              className="w-7 h-7 rounded-full"
                             />
-                            <ExternalLink
-                              size={12}
-                              className="opacity-70 hover:opacity-100"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(
-                                  `https://suivision.xyz/coin/${c.coinType}`,
-                                  "_blank",
-                                );
-                              }}
-                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-slate-600" />
+                          )}
+
+                          <div className="flex-1">
+                            <div className="font-medium leading-none">
+                              {c.symbol}
+                            </div>
+                            <div className="text-xs opacity-70">{c.name}</div>
+                          </div>
+
+                          <div className="text-right">
+                            <div>
+                              {(Number(c.totalBalance) / 10 ** c.decimals).toLocaleString()}
+                            </div>
+                            <div className="text-xs opacity-50 flex items-center gap-1">
+                              {c.coinType.slice(0, 4)}…{c.coinType.slice(-4)}
+                              <Copy
+                                size={12}
+                                className="cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(c.coinType);
+                                  toast({ title: "Copied" });
+                                }}
+                              />
+                              <ExternalLink
+                                size={12}
+                                className="opacity-70 hover:opacity-100"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(
+                                    `https://suivision.xyz/coin/${c.coinType}`,
+                                    "_blank",
+                                  );
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
-              {/* amount input */}
-              <div className="flex-1 flex gap-2">
-                <Input
-                  value={row.amount}
-                  onChange={(e) => updateRow(row.id, { amount: e.target.value })}
-                  placeholder="0.0"
-                />
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    if (!row.coin) return;
-                    updateRow(row.id, {
-                      amount: (
-                        Number(row.coin.totalBalance) /
-                        10 ** row.coin.decimals
-                      ).toString(),
-                    });
-                  }}
-                >
-                  MAX
-                </Button>
+                {/* amount input */}
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    value={row.amount}
+                    type="number"
+                    onChange={(e) => updateRow(row.id, { amount: formatNumericInput(e.target.value) })}
+                    placeholder="0.0"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (!row.coin) return;
+                      updateRow(row.id, {
+                        amount: (
+                          Number(row.coin.totalBalance) /
+                          10 ** row.coin.decimals
+                        ).toString(),
+                      });
+                    }}
+                  >
+                    MAX
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {idx === rows.length - 1 && (
-              <Button
-                variant="link"
-                size="sm"
-                className="mt-2"
-                onClick={addRow}
-              >
-                <Plus size={14} className="mr-1" />
-                Add another token
-              </Button>
-            )}
-          </Card>
-        ))}
+              {idx === rows.length - 1 && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="mt-2"
+                  onClick={addRow}
+                >
+                  <Plus size={14} className="mr-1" />
+                  Add another token
+                </Button>
+              )}
+            </Card>
+          ))}
+        </section>
+
+        {/* footer actions */}
+        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-1">
+            <span className="opacity-70">Gas estimate:</span>
+            <img src="/images/sui.svg" className="w-4 h-4" />
+            <span>{estimatedGasSui}</span>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setRows([{ id: Date.now(), amount: "" }])}
+              className="min-w-[96px]"
+            >
+              Clear
+            </Button>
+            <Button
+              disabled={!canSend}
+              onClick={handleSend}
+              className="min-w-[120px] bg-[#818cf8]"
+            >
+              Send
+            </Button>
+          </div>
+        </section>
+
       </section>
-
-      {/* footer actions */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-1">
-          <span className="opacity-70">Gas estimate:</span>
-          <img src="/images/sui.svg" className="w-4 h-4" />
-          <span>{estimatedGasSui}</span>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setRows([{ id: Date.now(), amount: "" }])}
-            className="min-w-[96px]"
-          >
-            Clear
-          </Button>
-          <Button
-            disabled={!canSend}
-            onClick={handleSend}
-            className="min-w-[120px]"
-          >
-            Send
-          </Button>
-        </div>
-      </section>
-
       <Footer />
     </main>
   );

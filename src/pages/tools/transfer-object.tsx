@@ -85,9 +85,9 @@ export default function TransferObjectPage() {
           !!display.data?.description;
 
         const typeStr =
-  item.data?.content?.dataType === "moveObject"
-    ? item.data.content.type
-    : "";
+          item.data?.content?.dataType === "moveObject"
+            ? item.data.content.type
+            : "";
         const typeShort =
           typeStr.split("<", 1)[0].split("::").pop() ?? "Unknown";
 
@@ -212,139 +212,141 @@ export default function TransferObjectPage() {
   /* ------------------------------------------------------------------ */
 
   return (
-    <main className="max-w-6xl mx-auto py-8 px-4 text-sm text-white">
+    <main className="relative w-full min-h-screen flex flex-col items-center justify-between mx-auto">
       <Header />
 
-      <h1 className="text-3xl font-semibold mb-6">Transfer Objects</h1>
+      <section className="w-full max-w-6xl mx-auto py-8 px-4 flex-1">
 
-      {/* recipient */}
-      <section className="mb-6">
-        <label className="font-medium block mb-2">Recipient address</label>
-        <Input
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          placeholder="0x..."
-        />
-      </section>
+        <h1 className="text-3xl font-semibold mb-6">Transfer Objects</h1>
 
-      {/* search + tabs */}
-      <section className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-2">
+        {/* recipient */}
+        <section className="mb-6">
+          <label className="font-medium block mb-2">Recipient address</label>
           <Input
-            className="flex-1"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search objects"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="0x..."
           />
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Refresh"
-            onClick={() => fetchObjects()}
+        </section>
+
+        {/* search + tabs */}
+        <section className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Input
+              className="flex-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search objects"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Refresh"
+              onClick={() => fetchObjects()}
+            >
+              ⟳
+            </Button>
+          </div>
+
+          <Tabs
+            value={filter}
+            onValueChange={(v) => setFilter(v as any)}
+            className="self-start"
           >
-            ⟳
-          </Button>
-        </div>
+            <TabsList className="bg-gray-700">
+              <TabsTrigger value="verified">Verified</TabsTrigger>
+              <TabsTrigger value="unverified">Unverified</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </section>
 
-        <Tabs
-          value={filter}
-          onValueChange={(v) => setFilter(v as any)}
-          className="self-start"
-        >
-          <TabsList>
-            <TabsTrigger value="verified">Verified</TabsTrigger>
-            <TabsTrigger value="unverified">Unverified</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </section>
-
-      {/* list */}
-      <section className="h-[420px] overflow-y-auto mb-8 pr-1">
-        {filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground mt-10">
-            No matching objects
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filtered.map((obj) => (
-              <Card
-                key={obj.objectId}
-                className={`relative p-4 border bg-gradient-to-b from-slate-800/50 to-slate-700/50 backdrop-blur
+        {/* list */}
+        <section className="h-[420px] overflow-y-auto mb-8 pr-1">
+          {filtered.length === 0 ? (
+            <p className="text-center text-muted-foreground mt-10">
+              No matching objects
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filtered.map((obj) => (
+                <Card
+                  key={obj.objectId}
+                  className={`relative p-4 border bg-gradient-to-b from-slate-800/50 to-slate-700/50 backdrop-blur
                 transition-shadow hover:shadow-lg cursor-pointer
                 ${selectedIds.includes(obj.objectId) ? "border-cyan-400" : "border-slate-600"}`}
-                onClick={() => toggleSelect(obj.objectId)}
-              >
-                {/* copy icon */}
-                <Copy
-                  size={16}
-                  className="absolute top-3 right-3 opacity-70 hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCopy(obj.objectId);
-                  }}
-                />
-
-                <div className="text-xs uppercase tracking-wide text-cyan-400">
-                  {obj.type}
-                </div>
-                <div className="font-medium truncate">{obj.name}</div>
-                <div className="text-muted-foreground text-[10px] mb-2">
-                  {obj.objectId.slice(0, 6)}…{obj.objectId.slice(-4)}
-                </div>
-
-                {obj.image_url ? (
-                  <img
-                    src={obj.image_url}
-                    className="w-full h-24 object-cover rounded mb-2"
-                    alt={obj.name}
+                  onClick={() => toggleSelect(obj.objectId)}
+                >
+                  {/* copy icon */}
+                  <Copy
+                    size={16}
+                    className="absolute top-3 right-3 opacity-70 hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(obj.objectId);
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-24 bg-slate-600/40 rounded mb-2 flex items-center justify-center text-xs text-slate-400">
-                    No preview
+
+                  <div className="text-xs uppercase tracking-wide text-cyan-400">
+                    {obj.type}
                   </div>
-                )}
+                  <div className="font-medium truncate">{obj.name}</div>
+                  <div className="text-muted-foreground text-[10px] mb-2">
+                    {obj.objectId.slice(0, 6)}…{obj.objectId.slice(-4)}
+                  </div>
 
-                {obj.description && (
-                  <p className="line-clamp-2 text-muted-foreground text-xs">
-                    {obj.description}
-                  </p>
-                )}
-              </Card>
-            ))}
+                  {obj.image_url ? (
+                    <img
+                      src={obj.image_url}
+                      className="w-full h-24 object-cover rounded mb-2"
+                      alt={obj.name}
+                    />
+                  ) : (
+                    <div className="w-full h-24 bg-slate-600/40 rounded mb-2 flex items-center justify-center text-xs text-slate-400">
+                      No preview
+                    </div>
+                  )}
+
+                  {obj.description && (
+                    <p className="line-clamp-2 text-muted-foreground text-xs">
+                      {obj.description}
+                    </p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* footer actions */}
+        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* gas */}
+          <div className="flex items-center gap-1">
+            <span className="opacity-70">Gas estimate:</span>
+            <img src="/images/sui.svg" alt="sui" className="w-4 h-4" />
+            <span>{estimatedGasSui}</span>
           </div>
-        )}
+
+          {/* buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedIds([])}
+              className="min-w-[96px]"
+            >
+              Clear
+            </Button>
+            <Button
+              onClick={handleTransfer}
+              disabled={!recipient || selectedIds.length === 0}
+              className="min-w-[120px] bg-[#818cf8]"
+            >
+              Send
+              {selectedIds.length > 0 && ` (${selectedIds.length})`}
+            </Button>
+          </div>
+        </section>
       </section>
-
-      {/* footer actions */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* gas */}
-        <div className="flex items-center gap-1">
-          <span className="opacity-70">Gas estimate:</span>
-          <img src="/images/sui.svg" alt="sui" className="w-4 h-4" />
-          <span>{estimatedGasSui}</span>
-        </div>
-
-        {/* buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setSelectedIds([])}
-            className="min-w-[96px]"
-          >
-            Clear
-          </Button>
-          <Button
-            onClick={handleTransfer}
-            disabled={!recipient || selectedIds.length === 0}
-            className="min-w-[120px]"
-          >
-            Send
-            {selectedIds.length > 0 && ` (${selectedIds.length})`}
-          </Button>
-        </div>
-      </section>
-
       <Footer />
     </main>
   );

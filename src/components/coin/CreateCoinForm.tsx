@@ -41,7 +41,7 @@ export default function CreateCoinForm() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string>();
   const [decimals, setDecimals] = useState(9);
-  const [mintAmount, setMintAmount] = useState(1_000_000);
+  const [mintAmount, setMintAmount] = useState(10_000_000_000);
   const [isMetaDataMutable, setIsMetaDataMutable] = useState(true);
   const [loading, setLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("“A sleepy sloth that rules DeFi”");
@@ -87,9 +87,8 @@ export default function CreateCoinForm() {
             { method: "PUT", body: avatar }
           );
           const j = await r.json();
-          iconUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${
-            j.newlyCreated?.blobObject?.blobId || j.alreadyCertified?.blobId
-          }`;
+          iconUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${j.newlyCreated?.blobObject?.blobId || j.alreadyCertified?.blobId
+            }`;
         }
 
         const coinMeta = {
@@ -166,10 +165,10 @@ export default function CreateCoinForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="w-full space-y-10"
+      className="w-full space-y-10 text-left"
     >
       {/* headline */}
-      <div className="text-center space-y-3">
+      {/* <div className="text-center space-y-3">
         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent inline-flex items-center gap-2">
           <Sparkles size={28} /> Mint&nbsp;Your Meme&nbsp;Coin
         </h1>
@@ -177,34 +176,39 @@ export default function CreateCoinForm() {
           Fill in the details or let AI suggest something fun. We’ll handle the
           on‑chain magic.
         </p>
+      </div> */}
+
+      <div className="px-4 py-3 flex bg-gray-800 text-gray-300 rounded-md">
+        ✨ Don't feel like typing?
+        <div className="pl-2 text-[#818cf8] cursor-pointer hover:text-[#f472b6]" onClick={generateWithAI}>AI fill the form ></div>
       </div>
 
       {/* AI prompt */}
       <section className="space-y-4">
-        <label className="font-medium">Meme prompt / idea</label>
+        <div className="font-medium text-gray-300">Meme prompt / idea</div>
         <Textarea
           value={aiPrompt}
           onChange={(e) => setAiPrompt(e.target.value)}
           rows={3}
           placeholder="A sleepy sloth that rules DeFi…"
         />
-        <Button type="button" onClick={generateWithAI} variant="secondary">
+        {/* <Button type="button" onClick={generateWithAI} variant="secondary">
           ✨ AI – fill the form
-        </Button>
+        </Button> */}
       </section>
 
       {/* basics */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="font-medium">Project name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required />
+          <div className="font-medium text-gray-300">Project name</div>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Please select a file"/>
         </div>
         <div className="space-y-2">
-          <label className="font-medium">Ticker</label>
+          <div className="font-medium text-gray-300">Ticker</div>
           <Input value={symbol} onChange={(e) => setSymbol(e.target.value)} required />
         </div>
-        <div className="md:col-span-2 space-y-2">
-          <label className="font-medium">Description</label>
+        <div className="md:col-span-2 space-y-3">
+          <div className="font-medium text-gray-300">Description</div>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -216,7 +220,7 @@ export default function CreateCoinForm() {
       {/* media & meta */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="font-medium">Avatar image</label>
+          <div className="font-medium text-gray-300">Avatar image</div>
           <Input type="file" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
           {imagePrompt && <p className="text-xs text-muted-foreground">AI prompt: {imagePrompt}</p>}
           {iconPreview && (
@@ -225,26 +229,28 @@ export default function CreateCoinForm() {
         </div>
         <div className="flex flex-col gap-6">
           <div className="space-y-2">
-            <label className="font-medium">Decimals</label>
+            <div className="flex items-center font-medium text-gray-300">Decimals
+              <div className="ml-2 flex items-center gap-2 mt-auto">
+                <Switch id="metaSwitch" checked={isMetaDataMutable} onCheckedChange={setIsMetaDataMutable}
+                  className={`w-11 h-6 rounded-full relative transition-colors ${isMetaDataMutable ? 'bg-[#818cf8]' : 'bg-gray-300'}`} />
+                <div htmlFor="metaSwitch" className="text-sm font-medium text-gray-400 select-none">
+                  (Metadata mutable)
+                </div>
+              </div>
+            </div>
             <Input type="number" min={0} max={18} value={decimals} onChange={(e) => setDecimals(Number(e.target.value))} />
-          </div>
-          <div className="flex items-center gap-2 mt-auto">
-            <Switch id="metaSwitch" checked={isMetaDataMutable} onCheckedChange={setIsMetaDataMutable} />
-            <label htmlFor="metaSwitch" className="text-sm font-medium text-gray-200 select-none">
-              Metadata mutable
-            </label>
           </div>
         </div>
       </section>
 
       {/* supply */}
       <section className="space-y-2">
-        <label className="font-medium">Initial supply</label>
+        <div className="font-medium text-gray-300">Initial supply</div>
         <Input type="number" min={0} value={mintAmount} onChange={(e) => setMintAmount(Number(e.target.value))} />
       </section>
 
       {/* submit */}
-      <Button type="submit" disabled={loading || !account} className="w-full h-12 text-base gap-2">
+      <Button type="submit" variant="outline" disabled={loading || !account} className="w-full h-12 bg-[#818cf8] text-base gap-2">
         {loading && <Loader2 size={18} className="animate-spin" />}
         {loading ? "Deploying…" : "🚀 Deploy my coin"}
       </Button>

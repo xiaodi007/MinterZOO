@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <main
       className={cn(
-        "relative w-full min-h-svh h-full max-w-360 flex flex-col items-center justify-between mx-auto py-5 px-4",
+        "relative w-full min-h-svh h-full max-w-360 flex flex-col items-center justify-between mx-auto ",
         inter.className
       )}
     >
@@ -33,15 +33,15 @@ export default function Home() {
           <HomeCard
             href="/create-coin"
             title="Create Meme Coin"
-            subtitle="Launch a token in a few clicks."
+            subtitle="Launch a token in a few clicks. customize the name, symbol, and you're live."
             icon={<SendHorizonal size={24} />}
             cta="Start creating"
-            variant="default"
+            variant="outline"
           />
           <HomeCard
             href="/tools"
             title="Asset Toolbox"
-            subtitle="Transfer, merge, split or burn coins."
+            subtitle="Transfer, merge, split or burn coins. manage your meme empire with precision."
             icon={<Wrench size={24} />}
             cta="Open toolbox"
             variant="outline"
@@ -77,7 +77,7 @@ function HomeCard({
             {icon}
             <span>{title}</span>
           </div>
-          <p className="text-muted-foreground text-sm flex-1">{subtitle}</p>
+          <p className="text-left text-sm flex-1 pl-9 break-all">{subtitle}</p>
           <Button variant={variant} className="self-center w-fit px-6">
             {cta}
           </Button>
