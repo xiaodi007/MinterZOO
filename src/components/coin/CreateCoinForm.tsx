@@ -179,8 +179,8 @@ export default function CreateCoinForm() {
       </div> */}
 
       <div className="px-4 py-3 flex bg-gray-800 text-gray-300 rounded-md">
-        ✨ Don't feel like typing?
-        <div className="pl-2 text-[#818cf8] cursor-pointer hover:text-[#f472b6]" onClick={generateWithAI}>AI fill the form ></div>
+        ✨ Don&apos;t feel like typing?
+        <div className="pl-2 text-[#818cf8] cursor-pointer hover:text-[#f472b6]" onClick={generateWithAI}>AI fill the form {'>'}</div>
       </div>
 
       {/* AI prompt */}
@@ -233,9 +233,9 @@ export default function CreateCoinForm() {
               <div className="ml-2 flex items-center gap-2 mt-auto">
                 <Switch id="metaSwitch" checked={isMetaDataMutable} onCheckedChange={setIsMetaDataMutable}
                   className={`w-11 h-6 rounded-full relative transition-colors ${isMetaDataMutable ? 'bg-[#818cf8]' : 'bg-gray-300'}`} />
-                <div htmlFor="metaSwitch" className="text-sm font-medium text-gray-400 select-none">
+                <label htmlFor="metaSwitch" className="text-sm font-medium text-gray-400 select-none">
                   (Metadata mutable)
-                </div>
+                </label>
               </div>
             </div>
             <Input type="number" min={0} max={18} value={decimals} onChange={(e) => setDecimals(Number(e.target.value))} />

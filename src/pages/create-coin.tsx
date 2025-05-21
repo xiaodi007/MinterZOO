@@ -16,7 +16,7 @@ export default function CreateCoinPage() {
           <Sparkles size={32} /> Create&nbsp;Your Meme&nbsp;Coin
         </h1>
         <p className="text-muted-foreground max-w-md mb-10">
-          Name it yourself or let AI spark the fun — once you're ready, we'll handle the chain work and drop your token on Sui, contract and all.
+          Name it yourself or let AI spark the fun — once you&apos;re ready, we&apos;ll handle the chain work and drop your token on Sui, contract and all.
           {/* Deploy a brand-new token on&nbsp;Sui in just a few clicks. Fill in the
           details, hit <em>Mint</em>, and grab your contract address. */}
         </p>
