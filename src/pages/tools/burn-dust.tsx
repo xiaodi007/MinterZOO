@@ -124,6 +124,11 @@ export default function DestroyZeroCoins() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
     // tx.deleteObjects(zeroCoins.map((c) => tx.object(c.objectId)));
+    zeroCoins.map((c) => tx.moveCall({
+              target: '0x2::coin::destroy_zero',
+              arguments: [tx.object(c.objectId)],
+              typeArguments: [c.coinType],
+            }))
 
 
     signAndExecute(

@@ -27,6 +27,10 @@ import { Transaction } from "@mysten/sui/transactions";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
+import {
+  fetchAllCoinsByType,
+} from "./utils";
+
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
@@ -46,7 +50,7 @@ interface CoinMeta {
 interface MergeTask {
   id: number;
   coin: CoinMeta;
-  sources: number;      // how many coin objects to merge (excluding target)
+  sources: number; // how many coin objects to merge (excluding target)
   mergeAll: boolean;
 }
 
@@ -62,7 +66,7 @@ export default function MergeTokensPage() {
   /* ---------------------------- state ------------------------------ */
   const [coins, setCoins] = useState<CoinMeta[]>([]);
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
-    "verified",
+    "verified"
   );
   const [search, setSearch] = useState("");
 
@@ -92,7 +96,7 @@ export default function MergeTokensPage() {
             owner: account.address,
             coinType: b.coinType,
             cursor,
-            limit: 50,            // page size，可自行调大
+            limit: 50, // page size，可自行调大
           });
           count += page.data.length;
           cursor = page.nextCursor;
@@ -107,20 +111,22 @@ export default function MergeTokensPage() {
           decimals: meta?.decimals ?? 9,
           iconUrl: meta?.iconUrl ?? undefined,
           verified:
-            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol || !!meta?.decimals,
+            !!meta?.iconUrl ||
+            !!meta?.name ||
+            !!meta?.symbol ||
+            !!meta?.decimals,
         } as CoinMeta;
-      }),
+      })
     );
 
     setCoins(metas);
   }, [account?.address, client]);
 
-
   /* ------------------------ fetch gas price ------------------------ */
   const fetchGasPrice = useCallback(async () => {
     try {
       setGasPrice(BigInt(await client.getReferenceGasPrice()));
-    } catch { }
+    } catch {}
   }, [client]);
 
   useEffect(() => {
@@ -138,7 +144,7 @@ export default function MergeTokensPage() {
     let list = coins;
     if (filter !== "all") {
       list = list.filter((c) =>
-        filter === "verified" ? c.verified : !c.verified,
+        filter === "verified" ? c.verified : !c.verified
       );
     }
     if (search.trim()) {
@@ -147,7 +153,7 @@ export default function MergeTokensPage() {
         (c) =>
           c.symbol.toLowerCase().includes(q) ||
           c.name.toLowerCase().includes(q) ||
-          c.coinType.toLowerCase().includes(q),
+          c.coinType.toLowerCase().includes(q)
       );
     }
     return list;
@@ -199,38 +205,30 @@ export default function MergeTokensPage() {
     tx.setGasBudget(GAS_BUDGET);
 
     for (const task of tasks) {
-      const required = task.sources + 1;            // 目标 + 来源
-      const ids: string[] = [];
-      let cursor: string | null | undefined = undefined;
+      const requiredCount = task.sources + 1;
 
-      while (ids.length < required) {
-        const page = await client.getCoins({
-          owner: account.address,
-          coinType: task.coin.coinType,
-          cursor,
-          limit: 50,
-        });
-        ids.push(...page.data.map((c) => c.coinObjectId));
-        if (!page.hasNextPage) break;
-        cursor = page.nextCursor;
-      }
+      const coins = await fetchAllCoinsByType(
+        client,
+        account.address,
+        task.coin.coinType
+      );
+      const ids = coins.map((c) => c.coinObjectId);
 
-      if (ids.length < required) {
+      if (ids.length < requiredCount) {
         toast({
           title: "Not enough coin objects",
-          description: `${task.coin.symbol}`,
+          description: `${task.coin.symbol}: Required ${requiredCount}, but found ${ids.length}`,
         });
         return;
       }
 
-      const [targetId, ...sourceIds] = ids.slice(0, required);
+      const [targetId, ...sourceIds] = ids.slice(0, requiredCount);
 
       tx.mergeCoins(
         tx.object(targetId),
-        sourceIds.map((id) => tx.object(id)),
+        sourceIds.map((id) => tx.object(id))
       );
     }
-
 
     signAndExecute(
       { transaction: tx },
@@ -241,7 +239,7 @@ export default function MergeTokensPage() {
           fetchCoins();
         },
         onError: (e) => toast({ title: "❌ Error", description: e.message }),
-      },
+      }
     );
   };
 
@@ -263,7 +261,10 @@ export default function MergeTokensPage() {
             <label className="block font-medium mb-2">Token</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between h-11">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-11"
+                >
                   {selected ? (
                     <span className="flex items-center gap-2">
                       {selected.iconUrl ? (
@@ -331,7 +332,9 @@ export default function MergeTokensPage() {
                       )}
 
                       <div className="flex-1">
-                        <div className="font-medium leading-none">{c.symbol}</div>
+                        <div className="font-medium leading-none">
+                          {c.symbol}
+                        </div>
                         <div className="text-xs opacity-70">{c.name}</div>
                       </div>
 
@@ -358,15 +361,15 @@ export default function MergeTokensPage() {
                 >
                   <Minus size={14} />
                 </Button>
-                <span className="w-8 text-center">{mergeAll ? "All" : sources}</span>
+                <span className="w-8 text-center">
+                  {mergeAll ? "All" : sources}
+                </span>
                 <Button
                   variant="outline"
                   size="icon"
                   disabled={mergeAll || sources >= selected.objectCount - 1}
                   onClick={() =>
-                    setSources((s) =>
-                      Math.min(selected.objectCount - 1, s + 1),
-                    )
+                    setSources((s) => Math.min(selected.objectCount - 1, s + 1))
                   }
                 >
                   <Plus size={14} />
@@ -384,7 +387,11 @@ export default function MergeTokensPage() {
             </section>
           )}
 
-          <Button className="w-full bg-[#818cf8]" disabled={!canAdd} onClick={addTask}>
+          <Button
+            className="w-full bg-[#818cf8]"
+            disabled={!canAdd}
+            onClick={addTask}
+          >
             Add
           </Button>
         </Card>

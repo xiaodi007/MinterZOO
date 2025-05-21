@@ -18,7 +18,7 @@ import Footer from "@/components/footer";
 /* constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 1; // 1B gas units ≈ 0.01 SUI at 10 mist gas-price
+const GAS_BUDGET = 1000000000; // 1B gas units ≈ 0.01 SUI at 10 mist gas-price
 
 /* ------------------------------------------------------------------ */
 /* types                                                              */
@@ -184,10 +184,14 @@ export default function TransferObjectPage() {
 
   const handleTransfer = async () => {
     if (!account?.address || !recipient || selectedIds.length === 0) return;
-
+console.log(recipient)
     const tx = new Transaction();
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
+    // selectedIds.map((id) => tx.transferObjects(
+    //  [ tx.object(id)],
+    //   tx.pure.address(recipient),
+    // ))
     tx.transferObjects(
       selectedIds.map((id) => tx.object(id)),
       tx.pure.address(recipient),

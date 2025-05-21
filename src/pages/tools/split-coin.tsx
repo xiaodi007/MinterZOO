@@ -28,6 +28,8 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { formatNumericInput } from "@/lib/utils";
 
+import { fetchAllCoinsByType, getTotalBalanceBigInt } from "./utils";
+
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
@@ -64,7 +66,7 @@ export default function SplitTokenPage() {
   /* ----------------------------- state ------------------------------ */
   const [coins, setCoins] = useState<CoinMeta[]>([]);
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
-    "verified",
+    "verified"
   );
   const [search, setSearch] = useState("");
 
@@ -93,10 +95,9 @@ export default function SplitTokenPage() {
           decimals: meta?.decimals ?? 9,
           iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
-          verified:
-            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
+          verified: !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
         } satisfies CoinMeta;
-      }),
+      })
     );
     setCoins(metas);
   }, [account?.address, client]);
@@ -105,7 +106,7 @@ export default function SplitTokenPage() {
   const fetchGasPrice = useCallback(async () => {
     try {
       setGasPrice(BigInt(await client.getReferenceGasPrice()));
-    } catch { }
+    } catch {}
   }, [client]);
 
   useEffect(() => {
@@ -123,7 +124,7 @@ export default function SplitTokenPage() {
     let list = coins;
     if (filter !== "all") {
       list = list.filter((c) =>
-        filter === "verified" ? c.verified : !c.verified,
+        filter === "verified" ? c.verified : !c.verified
       );
     }
     if (search.trim()) {
@@ -132,7 +133,7 @@ export default function SplitTokenPage() {
         (c) =>
           c.symbol.toLowerCase().includes(q) ||
           c.name.toLowerCase().includes(q) ||
-          c.coinType.toLowerCase().includes(q),
+          c.coinType.toLowerCase().includes(q)
       );
     }
     return list;
@@ -143,7 +144,7 @@ export default function SplitTokenPage() {
     if (!selected || !amount) return { ok: false, remainder: "-" };
 
     const baseEach = BigInt(
-      Math.round(Number(amount) * 10 ** selected.decimals + Number.EPSILON),
+      Math.round(Number(amount) * 10 ** selected.decimals + Number.EPSILON)
     );
     const totalBase = baseEach * BigInt(pieces);
     const balance = selected.totalBalance;
@@ -162,11 +163,7 @@ export default function SplitTokenPage() {
   }, [gasPrice]);
 
   const canAdd =
-    selected &&
-    amount &&
-    Number(amount) > 0 &&
-    pieces > 0 &&
-    remainderInfo.ok;
+    selected && amount && Number(amount) > 0 && pieces > 0 && remainderInfo.ok;
 
   const canSend = tasks.length > 0;
 
@@ -202,7 +199,6 @@ export default function SplitTokenPage() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
 
-    // 分组同 coinType，避免多次取 UTXO
     const group: Record<string, SplitTask[]> = {};
     tasks.forEach((t) => {
       if (!group[t.coin.coinType]) group[t.coin.coinType] = [];
@@ -210,31 +206,59 @@ export default function SplitTokenPage() {
     });
 
     for (const [coinType, list] of Object.entries(group)) {
-      // 拿第一枚 coin 对象
-      const { data } = await client.getCoins({
-        owner: account.address,
-        coinType,
-        limit: 1,
-      });
-      if (data.length === 0) {
+      const coinMeta = list[0].coin;
+      const coins = await fetchAllCoinsByType(
+        client,
+        account.address,
+        coinType
+      );
+
+      if (coins.length === 0) {
         toast({ title: "Insufficient balance", description: coinType });
         return;
       }
-      const sourceId = data[0].coinObjectId;
 
+      const total = getTotalBalanceBigInt(coins);
+
+      // 计算所需总额
+      const requiredTotal = list.reduce((sum, task) => {
+        const each = BigInt(
+          Math.round(
+            Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
+          )
+        );
+        return sum + each * BigInt(task.pieces);
+      }, BigInt(0));
+
+      if (total < requiredTotal) {
+        toast({
+          title: "Insufficient balance",
+          description: `${coinMeta.symbol}: need ${requiredTotal}, only ${total}`,
+        });
+        return;
+      }
+
+      const sourceId = coins[0].coinObjectId;
+      const mergeList = coins.slice(1).map((c) => c.coinObjectId);
+      if (mergeList.length > 0) {
+        tx.mergeCoins(
+          tx.object(sourceId),
+          mergeList.map((id) => tx.object(id))
+        );
+      }
+
+      // 逐 task 分割 + 转账（回自己）
       list.forEach((task) => {
         const baseEach = BigInt(
           Math.round(
-            Number(task.amountEach) * 10 ** task.coin.decimals +
-            Number.EPSILON,
-          ),
+            Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
+          )
         );
         const amounts = Array(task.pieces).fill(baseEach);
-        const newCoins = tx.splitCoins(tx.object(sourceId),
-          amounts,
-        );
-        tx.transferObjects([newCoins], tx.pure.address(account.address));
-        // 不 transfer，保留本地址；为了不返回数组处理复杂，这里直接忽略 newCoins
+        const newCoins = tx.splitCoins(tx.object(sourceId), amounts);
+        newCoins.forEach((c) => {
+          tx.transferObjects([c], tx.pure.address(account.address));
+        });
       });
     }
 
@@ -247,7 +271,7 @@ export default function SplitTokenPage() {
           fetchCoins();
         },
         onError: (e) => toast({ title: "❌ Error", description: e.message }),
-      },
+      }
     );
   };
 
@@ -352,7 +376,8 @@ export default function SplitTokenPage() {
                       <div className="text-right">
                         <div>
                           {(
-                            Number(c.totalBalance) / 10 ** c.decimals
+                            Number(c.totalBalance) /
+                            10 ** c.decimals
                           ).toLocaleString()}
                         </div>
                         <div className="text-xs opacity-50 flex items-center gap-1">
@@ -373,7 +398,7 @@ export default function SplitTokenPage() {
                               e.stopPropagation();
                               window.open(
                                 `https://suivision.xyz/coin/${c.coinType}`,
-                                "_blank",
+                                "_blank"
                               );
                             }}
                           />

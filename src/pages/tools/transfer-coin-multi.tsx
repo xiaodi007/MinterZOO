@@ -29,12 +29,16 @@ import Papa from "papaparse";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { formatNumericInput } from "@/lib/utils";
-
+import {
+  fetchAllCoinsByType,
+  getTotalBalanceBigInt,
+  formatAmount,
+} from "./utils";
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 2_000_000_000;
+const GAS_BUDGET = 500_000_000;
 
 interface CoinMeta {
   coinType: string;
@@ -69,7 +73,7 @@ export default function TransferTokensMulti() {
   ]);
   const [coins, setCoins] = useState<CoinMeta[]>([]);
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
-    "verified",
+    "verified"
   );
   const [search, setSearch] = useState("");
   const [equalSplit, setEqualSplit] = useState(false);
@@ -92,10 +96,9 @@ export default function TransferTokensMulti() {
           decimals: meta?.decimals ?? 9,
           iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
-          verified:
-            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
+          verified: !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
         } satisfies CoinMeta;
-      }),
+      })
     );
     setCoins(metas);
   }, [account?.address, client]);
@@ -105,7 +108,7 @@ export default function TransferTokensMulti() {
   const fetchGasPrice = useCallback(async () => {
     try {
       setGasPrice(BigInt(await client.getReferenceGasPrice()));
-    } catch { }
+    } catch {}
   }, [client]);
 
   useEffect(() => {
@@ -124,7 +127,7 @@ export default function TransferTokensMulti() {
     let list = coins;
     if (filter !== "all") {
       list = list.filter((c) =>
-        filter === "verified" ? c.verified : !c.verified,
+        filter === "verified" ? c.verified : !c.verified
       );
     }
     if (search.trim()) {
@@ -133,7 +136,7 @@ export default function TransferTokensMulti() {
         (c) =>
           c.symbol.toLowerCase().includes(q) ||
           c.name.toLowerCase().includes(q) ||
-          c.coinType.toLowerCase().includes(q),
+          c.coinType.toLowerCase().includes(q)
       );
     }
     return list;
@@ -194,7 +197,10 @@ export default function TransferTokensMulti() {
           return;
         }
         setRows((prev) => [...prev, ...newRows]);
-        toast({ title: "Imported", description: `${newRows.length} rows added` });
+        toast({
+          title: "Imported",
+          description: `${newRows.length} rows added`,
+        });
       },
     });
   };
@@ -205,12 +211,20 @@ export default function TransferTokensMulti() {
     if (!account?.address || !token || !canSend) return;
 
     // fetch first coin object
-    const { data } = await client.getCoins({
-      owner: account.address,
-      coinType: token.coinType,
-      limit: 1,
-    });
-    if (data.length === 0) {
+    // const { data } = await client.getCoins({
+    //   owner: account.address,
+    //   coinType: token.coinType,
+    //   limit: 1,
+    // });
+    const data = await fetchAllCoinsByType(
+      client,
+      account.address,
+      token.coinType
+    );
+
+    const totalBalance = getTotalBalanceBigInt(data);
+
+    if (totalBalance === BigInt(0)) {
       toast({ title: "Insufficient balance" });
       return;
     }
@@ -220,33 +234,64 @@ export default function TransferTokensMulti() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
 
+    if (data.length >= 2) {
+      let allList = data.slice(1).map((coin) => coin.coinObjectId);
+
+      tx.mergeCoins(sourceId, allList);
+    }
+
     /* split & transfer */
     if (equalSplit) {
       const totalBase = BigInt(
-        Math.round(
-          Number(totalAmount) * 10 ** token.decimals + Number.EPSILON,
-        ),
+        Math.round(Number(totalAmount) * 10 ** token.decimals + Number.EPSILON)
       );
+      if (totalBalance < totalBase) {
+        toast({
+          title: "Insufficient balance",
+          description:
+            `Current balance: ${formatAmount(totalBalance, token.decimals)}\n` +
+            `Required: ${formatAmount(totalBase, token.decimals)}\n` +
+            `Shortfall: ${formatAmount(
+              totalBase - totalBalance,
+              token.decimals
+            )}`,
+        });
+        return;
+      }
       const amountEach = totalBase / BigInt(rows.length);
       const remainder = totalBase - amountEach * BigInt(rows.length);
 
       rows.forEach((r, idx) => {
-        const base =
-          idx === 0 ? amountEach + remainder : amountEach; // handle remainder
-        const [coinSplit] = tx.splitCoins(tx.object(sourceId), [
-          base,
-        ]);
+        const base = idx === 0 ? amountEach + remainder : amountEach; // handle remainder
+        const [coinSplit] = tx.splitCoins(tx.object(sourceId), [base]);
         tx.transferObjects([coinSplit], tx.pure.address(r.address));
       });
     } else {
-      rows.forEach((r) => {
+      let sum = BigInt(0);
+      const splits: { amount: bigint; address: string }[] = [];
+
+      for (const r of rows) {
         const base = BigInt(
-          Math.round(Number(r.amount) * 10 ** token.decimals + Number.EPSILON),
+          Math.round(Number(r.amount) * 10 ** token.decimals + Number.EPSILON)
         );
-        const [coinSplit] = tx.splitCoins(tx.object(sourceId), [
-          base,
-        ]);
-        tx.transferObjects([coinSplit], tx.pure.address(r.address));
+        sum += base;
+        splits.push({ amount: base, address: r.address });
+      }
+
+      if (totalBalance < sum) {
+        toast({
+          title: "Insufficient balance",
+          description:
+            `Current balance: ${formatAmount(totalBalance, token.decimals)}\n` +
+            `Required: ${formatAmount(sum, token.decimals)}\n` +
+            `Shortfall: ${formatAmount(sum - totalBalance, token.decimals)}`,
+        });
+        return;
+      }
+
+      splits.forEach((s) => {
+        const [coinSplit] = tx.splitCoins(tx.object(sourceId), [s.amount]);
+        tx.transferObjects([coinSplit], tx.pure.address(s.address));
       });
     }
 
@@ -260,7 +305,7 @@ export default function TransferTokensMulti() {
           setTotalAmount("");
         },
         onError: (e) => toast({ title: "❌ Error", description: e.message }),
-      },
+      }
     );
   };
 
@@ -273,7 +318,6 @@ export default function TransferTokensMulti() {
       <Header />
 
       <section className="w-full max-w-6xl mx-auto py-8 px-4 flex-1">
-
         <h1 className="text-3xl font-semibold mb-6">
           Transfer Tokens <span className="opacity-70">(multi-recipient)</span>
         </h1>
@@ -375,7 +419,7 @@ export default function TransferTokensMulti() {
                             e.stopPropagation();
                             window.open(
                               `https://suivision.xyz/coin/${c.coinType}`,
-                              "_blank",
+                              "_blank"
                             );
                           }}
                         />
@@ -419,7 +463,9 @@ export default function TransferTokensMulti() {
                     className="sm:w-40"
                     value={r.amount}
                     onChange={(e) =>
-                      updateRow(r.id, { amount: formatNumericInput(e.target.value) })
+                      updateRow(r.id, {
+                        amount: formatNumericInput(e.target.value),
+                      })
                     }
                   />
                 )}
@@ -438,11 +484,13 @@ export default function TransferTokensMulti() {
         <section className="h-[40px] mb-6 flex items-center gap-3">
           <Switch
             checked={equalSplit}
-            className={`w-11 h-6 rounded-full relative transition-colors ${equalSplit ? 'bg-[#818cf8]' : 'bg-gray-300'}`}
+            className={`w-11 h-6 rounded-full relative transition-colors ${
+              equalSplit ? "bg-[#818cf8]" : "bg-gray-300"
+            }`}
             onCheckedChange={(v) => {
               setEqualSplit(v);
               setRows((prev) =>
-                prev.map((r) => ({ ...r, amount: v ? "" : r.amount })),
+                prev.map((r) => ({ ...r, amount: v ? "" : r.amount }))
               );
             }}
           />
@@ -465,8 +513,8 @@ export default function TransferTokensMulti() {
             id={CSV_INPUT_ID}
             type="file"
             accept=".csv,text/csv"
-            className="sr-only"          // ⬅️ Tailwind 的无障碍隐藏写法，保留触发
-            onChange={e => {
+            className="sr-only" // ⬅️ Tailwind 的无障碍隐藏写法，保留触发
+            onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleCSV(file);
               e.target.value = "";

@@ -23,15 +23,21 @@ import {
   X,
 } from "lucide-react";
 import { Transaction } from "@mysten/sui/transactions";
+import { CoinStruct } from "@mysten/sui/client";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { formatNumericInput } from "@/lib/utils";
 
+import {
+  fetchAllCoinsByType,
+  getTotalBalanceBigInt,
+  formatAmount,
+} from "./utils";
 /* ------------------------------------------------------------------ */
 /* Helpers & types                                                    */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 2_000_000_000; // conservative for multi‐transfer
+const GAS_BUDGET = 500_000_000; // conservative for multi‐transfer
 
 interface CoinMeta {
   coinType: string;
@@ -62,7 +68,7 @@ export default function TransferTokensPage() {
   const [recipient, setRecipient] = useState("");
   const [coins, setCoins] = useState<CoinMeta[]>([]);
   const [filter, setFilter] = useState<"verified" | "unverified" | "all">(
-    "verified",
+    "verified"
   );
   const [search, setSearch] = useState("");
   const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
@@ -86,10 +92,9 @@ export default function TransferTokensPage() {
           decimals: meta?.decimals ?? 9,
           iconUrl: meta?.iconUrl ?? undefined,
           totalBalance: BigInt(b.totalBalance),
-          verified:
-            !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
+          verified: !!meta?.iconUrl || !!meta?.name || !!meta?.symbol,
         } satisfies CoinMeta;
-      }),
+      })
     );
 
     setCoins(metas);
@@ -121,7 +126,7 @@ export default function TransferTokensPage() {
     let list = coins;
     if (filter !== "all") {
       list = list.filter((c) =>
-        filter === "verified" ? c.verified : !c.verified,
+        filter === "verified" ? c.verified : !c.verified
       );
     }
     if (search.trim()) {
@@ -130,7 +135,7 @@ export default function TransferTokensPage() {
         (c) =>
           c.symbol.toLowerCase().includes(q) ||
           c.name.toLowerCase().includes(q) ||
-          c.coinType.toLowerCase().includes(q),
+          c.coinType.toLowerCase().includes(q)
       );
     }
     return list;
@@ -150,9 +155,7 @@ export default function TransferTokensPage() {
   /* ------------------------- Row helpers -------------------------------- */
 
   const updateRow = (id: number, patch: Partial<Row>) =>
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...patch } : r)),
-    );
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const addRow = () =>
     setRows((prev) => [...prev, { id: Date.now(), amount: "" }]);
@@ -166,23 +169,34 @@ export default function TransferTokensPage() {
     if (!account?.address || !canSend) return;
 
     // pre-fetch coin objects we’ll need
-    const coinObjects: Record<string, string> = {};
-    for (const { coin } of rows) {
-      if (coin && !coinObjects[coin.coinType]) {
-        const { data } = await client.getCoins({
-          owner: account.address,
-          coinType: coin.coinType,
-          limit: 1,
+    const coinObjects: Record<string, { coins: CoinStruct[]; total: bigint }> =
+      {};
+    for (const { coin, amount } of rows) {
+      if (!coin || coinObjects[coin.coinType]) continue;
+
+      const coins = await fetchAllCoinsByType(
+        client,
+        account.address,
+        coin.coinType
+      );
+      const total = getTotalBalanceBigInt(coins);
+      const base = BigInt(
+        Math.round(Number(amount) * 10 ** coin.decimals + Number.EPSILON)
+      );
+
+      if (total < base) {
+        toast({
+          title: "Insufficient balance",
+          description:
+            `Coin: ${coin.symbol} (${coin.coinType})\n` +
+            `Required: ${base}\nAvailable: ${total}\nShortfall: ${
+              base - total
+            }`,
         });
-        if (data.length === 0) {
-          toast({
-            title: "Insufficient balance",
-            description: coin.symbol,
-          });
-          return;
-        }
-        coinObjects[coin.coinType] = data[0].coinObjectId;
+        return;
       }
+
+      coinObjects[coin.coinType] = { coins, total };
     }
 
     /* -------- build tx -------- */
@@ -190,16 +204,29 @@ export default function TransferTokensPage() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
 
+    for (const coinType in coinObjects) {
+      const coins = coinObjects[coinType].coins;
+      if (coins.length > 1) {
+        const sourceId = coins[0].coinObjectId;
+        const mergeList = coins.slice(1).map((c) => c.coinObjectId);
+        tx.mergeCoins(sourceId, mergeList);
+      }
+    }
+
     rows.forEach(({ coin, amount }) => {
-      if (!coin) return;
+      if (!coin || !amount) return;
+
       const base = BigInt(
-        Math.round(
-          Number(amount) * 10 ** coin.decimals +
-          Number.EPSILON,
-        ),
+        Math.round(Number(amount) * 10 ** coin.decimals + Number.EPSILON)
       );
-      const source = coin.coinType === "0x2::sui::SUI" ? tx.gas : tx.object(coinObjects[coin.coinType]);
-      const [newCoin] = tx.splitCoins(source, [base]);
+
+      const coins = coinObjects[coin.coinType].coins;
+      const sourceId =
+        coin.coinType === "0x2::sui::SUI"
+          ? tx.gas
+          : tx.object(coins[0].coinObjectId); // 已 merge 到第一个
+
+      const [newCoin] = tx.splitCoins(sourceId, [base]);
       tx.transferObjects([newCoin], tx.pure.address(recipient));
     });
 
@@ -212,7 +239,7 @@ export default function TransferTokensPage() {
           fetchCoins();
         },
         onError: (e) => toast({ title: "❌ Error", description: e.message }),
-      },
+      }
     );
   };
 
@@ -327,7 +354,10 @@ export default function TransferTokensPage() {
 
                           <div className="text-right">
                             <div>
-                              {(Number(c.totalBalance) / 10 ** c.decimals).toLocaleString()}
+                              {(
+                                Number(c.totalBalance) /
+                                10 ** c.decimals
+                              ).toLocaleString()}
                             </div>
                             <div className="text-xs opacity-50 flex items-center gap-1">
                               {c.coinType.slice(0, 4)}…{c.coinType.slice(-4)}
@@ -347,7 +377,7 @@ export default function TransferTokensPage() {
                                   e.stopPropagation();
                                   window.open(
                                     `https://suivision.xyz/coin/${c.coinType}`,
-                                    "_blank",
+                                    "_blank"
                                   );
                                 }}
                               />
@@ -364,7 +394,11 @@ export default function TransferTokensPage() {
                   <Input
                     value={row.amount}
                     type="number"
-                    onChange={(e) => updateRow(row.id, { amount: formatNumericInput(e.target.value) })}
+                    onChange={(e) =>
+                      updateRow(row.id, {
+                        amount: formatNumericInput(e.target.value),
+                      })
+                    }
                     placeholder="0.0"
                   />
                   <Button
@@ -424,7 +458,6 @@ export default function TransferTokensPage() {
             </Button>
           </div>
         </section>
-
       </section>
       <Footer />
     </main>

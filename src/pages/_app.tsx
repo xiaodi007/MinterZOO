@@ -5,6 +5,7 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster"
 import { ToastContainer } from "react-toastify";
 import { AppContextProvider } from "@/context/AppContext";
 import "@/styles/globals.css";
@@ -43,6 +44,7 @@ const MyApp: AppType = ({ Component, pageProps }) => {
                     WebkitBackdropFilter: "blur(12px)",
                   }}
                 />
+                 <Toaster />
               </TooltipProvider>
             </AppContextProvider>
           </SuiWalletProvider>
