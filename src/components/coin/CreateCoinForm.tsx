@@ -13,7 +13,8 @@ import { normalizeSuiObjectId } from "@mysten/sui/utils";
 import initMoveByteCodeTemplate from "@mysten/move-bytecode-template";
 import { generateBytecode } from "@/lib/create-coin-utils";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2,UploadCloud } from "lucide-react";
+
 
 async function getTreasuryCapObjects(client, packageIds) {
   const objects = await Promise.all(
@@ -221,7 +222,23 @@ export default function CreateCoinForm() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="font-medium text-gray-300">Avatar image</div>
-          <Input type="file" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
+          {/* <Input type="file" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
+          <label className="block mb-2 font-medium">Upload CSV</label> */}
+          <input
+            id='dasfdsf'
+            type="file"
+            accept="image/*"
+            className="opacity-0 absolute w-[180px] h-[40px] cursor-pointer" // 隐藏但占据空间且可点击
+            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
+          />
+          <label htmlFor='dasfdsf' className="inline-block cursor-pointer w-[180px]">
+            <Button variant="outline">
+              <UploadCloud size={16} className="mr-1" />
+              Choose file
+            </Button>
+          </label>
+
+          
           {imagePrompt && <p className="text-xs text-muted-foreground">AI prompt: {imagePrompt}</p>}
           {iconPreview && (
             <img src={iconPreview} alt="preview" className="w-20 h-20 object-cover rounded mt-2" />

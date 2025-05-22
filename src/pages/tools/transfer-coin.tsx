@@ -436,9 +436,9 @@ export default function TransferTokensPage() {
         {/* footer actions */}
         <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-1">
-            <span className="opacity-70">Gas estimate:</span>
+            {/* <span className="opacity-70">Gas estimate:</span>
             <img src="/images/sui.svg" className="w-4 h-4" />
-            <span>{estimatedGasSui}</span>
+            <span>{estimatedGasSui}</span> */}
           </div>
 
           <div className="flex gap-2">

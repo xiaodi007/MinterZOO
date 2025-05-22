@@ -508,24 +508,24 @@ export default function TransferTokensMulti() {
 
         {/* CSV upload */}
         <section className="mb-8">
-<label className="block mb-2 font-medium">Upload CSV</label>
-<input
-  id={CSV_INPUT_ID}
-  type="file"
-  accept=".csv,text/csv"
-  className="opacity-0 absolute w-[140px] h-[40px] cursor-pointer" // 隐藏但占据空间且可点击
-  onChange={(e) => {
-    const file = e.target.files?.[0];
-    if (file) handleCSV(file);
-    e.target.value = ""; // 重置文件输入框
-  }}
-/>
-<label htmlFor={CSV_INPUT_ID} className="inline-block cursor-pointer">
-  <Button variant="outline">
-    <UploadCloud size={16} className="mr-1" />
-    Choose file
-  </Button>
-</label>
+          <label className="block mb-2 font-medium">Upload CSV</label>
+          <input
+            id={CSV_INPUT_ID}
+            type="file"
+            accept=".csv,text/csv"
+            className="opacity-0 absolute w-[140px] h-[40px] cursor-pointer" // 隐藏但占据空间且可点击
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleCSV(file);
+              e.target.value = ""; // 重置文件输入框
+            }}
+          />
+          <label htmlFor={CSV_INPUT_ID} className="inline-block cursor-pointer">
+            <Button variant="outline">
+              <UploadCloud size={16} className="mr-1" />
+              Choose file
+            </Button>
+          </label>
 
           <Button
             variant="secondary"
