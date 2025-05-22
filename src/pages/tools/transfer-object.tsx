@@ -326,9 +326,9 @@ console.log(recipient)
         <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* gas */}
           <div className="flex items-center gap-1">
-            <span className="opacity-70">Gas estimate:</span>
-            <img src="/images/sui.svg" alt="sui" className="w-4 h-4" />
-            <span>{estimatedGasSui}</span>
+            {/* <span className="opacity-70">Gas estimate:</span> */}
+            {/* <img src="/images/sui.svg" alt="sui" className="w-4 h-4" /> */}
+            {/* <span>{estimatedGasSui}</span> */}
           </div>
 
           {/* buttons */}
