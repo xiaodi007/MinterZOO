@@ -508,30 +508,30 @@ export default function TransferTokensMulti() {
 
         {/* CSV upload */}
         <section className="mb-8">
-          <label className="block mb-2 font-medium">Upload CSV</label>
-          <input
-            id={CSV_INPUT_ID}
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only" // ⬅️ Tailwind 的无障碍隐藏写法，保留触发
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleCSV(file);
-              e.target.value = "";
-            }}
-          />
-          <label htmlFor={CSV_INPUT_ID} className="inline-block">
-            <Button variant="outline">
-              <UploadCloud size={16} className="mr-1" />
-              Choose file
-            </Button>
-          </label>
+<label className="block mb-2 font-medium">Upload CSV</label>
+<input
+  id={CSV_INPUT_ID}
+  type="file"
+  accept=".csv,text/csv"
+  className="opacity-0 absolute w-[140px] h-[40px] cursor-pointer" // 隐藏但占据空间且可点击
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+    if (file) handleCSV(file);
+    e.target.value = ""; // 重置文件输入框
+  }}
+/>
+<label htmlFor={CSV_INPUT_ID} className="inline-block cursor-pointer">
+  <Button variant="outline">
+    <UploadCloud size={16} className="mr-1" />
+    Choose file
+  </Button>
+</label>
 
           <Button
             variant="secondary"
             onClick={() => {
               // 1) 生成示例内容
-              const header = ["address", "amount"].join(",") + "\n";
+              // const header = ["address", "amount"].join(",") + "\n";
               const sample = [
                 ["0xabc...1234", "100.5"],
                 ["0xdef...5678", "200"],
@@ -540,7 +540,7 @@ export default function TransferTokensMulti() {
                 .join("\n");
 
               // 2) 创建 Blob & 触发下载
-              const blob = new Blob([header + sample], { type: "text/csv" });
+              const blob = new Blob([sample], { type: "text/csv" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
@@ -556,9 +556,9 @@ export default function TransferTokensMulti() {
         {/* footer actions */}
         <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-1">
-            <span className="opacity-70">Gas estimate:</span>
-            <img src="/images/sui.svg" className="w-4 h-4" />
-            <span>{estimatedGasSui}</span>
+            {/* <span className="opacity-70">Gas estimate:</span> */}
+            {/* <img src="/images/sui.svg" className="w-4 h-4" /> */}
+            {/* <span>{estimatedGasSui}</span> */}
           </div>
 
           <div className="flex gap-2">

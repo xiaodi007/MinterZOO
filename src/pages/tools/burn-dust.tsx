@@ -16,7 +16,7 @@ import Footer from "@/components/footer";
 /* constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 1_000_000_000;
+const GAS_BUDGET = 500_000_000;
 const MAX_BATCH = 1024; // destroy up to 1024 zero-balance Coin objects
 
 /* ------------------------------------------------------------------ */
@@ -223,8 +223,8 @@ export default function DestroyZeroCoins() {
 
         {/* footer */}
         <div className="mt-6 flex items-center gap-2 text-sm opacity-70">
-          Gas estimate: <img src="/images/sui.svg" className="w-4 h-4" />
-          {gasPrice ? (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4) : "—"}
+          {/* Gas estimate: <img src="/images/sui.svg" className="w-4 h-4" /> */}
+          {/* {gasPrice ? (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4) : "—"} */}
         </div>
       </section>
       <Footer />

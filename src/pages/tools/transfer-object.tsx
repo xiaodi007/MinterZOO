@@ -18,7 +18,7 @@ import Footer from "@/components/footer";
 /* constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 1000000000; // 1B gas units ≈ 0.01 SUI at 10 mist gas-price
+const GAS_BUDGET = 500_000_000; // 1B gas units ≈ 0.01 SUI at 10 mist gas-price
 
 /* ------------------------------------------------------------------ */
 /* types                                                              */

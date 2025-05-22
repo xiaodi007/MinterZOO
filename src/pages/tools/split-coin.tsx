@@ -29,12 +29,13 @@ import Footer from "@/components/footer";
 import { formatNumericInput } from "@/lib/utils";
 
 import { fetchAllCoinsByType, getTotalBalanceBigInt } from "@/utils/utils";
+import { CoinStruct } from "@mysten/sui/client"; 
 
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 2_000_000_000;
+const GAS_BUDGET = 500_000_000;
 
 interface CoinMeta {
   coinType: string;
@@ -199,19 +200,24 @@ export default function SplitTokenPage() {
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
 
-    const group: Record<string, SplitTask[]> = {};
-    tasks.forEach((t) => {
-      if (!group[t.coin.coinType]) group[t.coin.coinType] = [];
-      group[t.coin.coinType].push(t);
-    });
+    // 将所有的 fetchAllCoinsByType 合并成一次请求
+    const coinTypes = Array.from(new Set(tasks.map((t) => t.coin.coinType)));
+    const coinsMap: Record<string, CoinStruct[]> = {};
 
-    for (const [coinType, list] of Object.entries(group)) {
-      const coinMeta = list[0].coin;
+    for (const coinType of coinTypes) {
       const coins = await fetchAllCoinsByType(
         client,
         account.address,
         coinType
       );
+      coinsMap[coinType] = coins;
+    }
+
+    const group: Record<string, SplitTask[]> = groupTasksByCoinType(tasks);
+
+    for (const [coinType, list] of Object.entries(group)) {
+      const coinMeta = list[0].coin;
+      const coins = coinsMap[coinType];
 
       if (coins.length === 0) {
         toast({ title: "Insufficient balance", description: coinType });
@@ -219,16 +225,7 @@ export default function SplitTokenPage() {
       }
 
       const total = getTotalBalanceBigInt(coins);
-
-      // 计算所需总额
-      const requiredTotal = list.reduce((sum, task) => {
-        const each = BigInt(
-          Math.round(
-            Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
-          )
-        );
-        return sum + each * BigInt(task.pieces);
-      }, BigInt(0));
+      const requiredTotal = calculateRequiredTotal(list, coinMeta);
 
       if (total < requiredTotal) {
         toast({
@@ -238,28 +235,46 @@ export default function SplitTokenPage() {
         return;
       }
 
+      // 合并非SUI和SUI交易的逻辑，只在判断条件时区分
       const sourceId = coins[0].coinObjectId;
       const mergeList = coins.slice(1).map((c) => c.coinObjectId);
-      if (mergeList.length > 0) {
-        tx.mergeCoins(
-          tx.object(sourceId),
-          mergeList.map((id) => tx.object(id))
-        );
-      }
 
-      // 逐 task 分割 + 转账（回自己）
-      list.forEach((task) => {
-        const baseEach = BigInt(
-          Math.round(
-            Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
-          )
-        );
-        const amounts = Array(task.pieces).fill(baseEach);
-        const newCoins = tx.splitCoins(tx.object(sourceId), amounts);
-        newCoins.forEach((c) => {
-          tx.transferObjects([c], tx.pure.address(account.address));
+      if (coinType !== "0x2::sui::SUI") {
+        if (mergeList.length > 0) {
+          tx.mergeCoins(
+            tx.object(sourceId),
+            mergeList.map((id) => tx.object(id))
+          );
+        }
+
+        list.forEach((task) => {
+          const baseEach = BigInt(
+            Math.round(
+              Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
+            )
+          );
+          const amounts = Array(task.pieces).fill(baseEach);
+          const newCoins = tx.splitCoins(tx.object(sourceId), amounts);
+          tx.transferObjects(
+            amounts.map((_, i) => newCoins[i]),
+            tx.pure.address(account.address)
+          );
         });
-      });
+      } else {
+        list.forEach((task) => {
+          const baseEach = BigInt(
+            Math.round(
+              Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
+            )
+          );
+          const amounts = Array(task.pieces).fill(baseEach);
+          const newCoins = tx.splitCoins(tx.gas, amounts);
+          tx.transferObjects(
+            amounts.map((_, i) => newCoins[i]),
+            tx.pure.address(account.address)
+          );
+        });
+      }
     }
 
     signAndExecute(
@@ -273,6 +288,27 @@ export default function SplitTokenPage() {
         onError: (e) => toast({ title: "❌ Error", description: e.message }),
       }
     );
+  };
+
+  // Helper function to group tasks by coin type
+  const groupTasksByCoinType = (tasks: SplitTask[]) => {
+    return tasks.reduce((group, task) => {
+      if (!group[task.coin.coinType]) group[task.coin.coinType] = [];
+      group[task.coin.coinType].push(task);
+      return group;
+    }, {} as Record<string, SplitTask[]>);
+  };
+
+  // Helper function to calculate the total required amount for all tasks
+  const calculateRequiredTotal = (tasks: SplitTask[], coinMeta: CoinMeta) => {
+    return tasks.reduce((sum, task) => {
+      const each = BigInt(
+        Math.round(
+          Number(task.amountEach) * 10 ** coinMeta.decimals + Number.EPSILON
+        )
+      );
+      return sum + each * BigInt(task.pieces);
+    }, BigInt(0));
   };
 
   /* ------------------------------------------------------------------ */
@@ -494,9 +530,9 @@ export default function SplitTokenPage() {
         {/* ───── footer actions ───── */}
         <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-1">
-            <span className="opacity-70">Gas estimate:</span>
+            {/* <span className="opacity-70">Gas estimate:</span>
             <img src="/images/sui.svg" className="w-4 h-4" />
-            <span>{estimatedGasSui}</span>
+            <span>{estimatedGasSui}</span> */}
           </div>
 
           <div className="flex gap-2">

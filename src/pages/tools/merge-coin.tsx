@@ -27,15 +27,13 @@ import { Transaction } from "@mysten/sui/transactions";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
-import {
-  fetchAllCoinsByType,
-} from "@/utils/utils";
+import { fetchAllCoinsByType } from "@/utils/utils";
 
 /* ------------------------------------------------------------------ */
 /* constants & types                                                  */
 /* ------------------------------------------------------------------ */
 
-const GAS_BUDGET = 2_000_000_000;
+const GAS_BUDGET = 500_000_000;
 
 interface CoinMeta {
   coinType: string;
@@ -44,6 +42,7 @@ interface CoinMeta {
   decimals: number;
   iconUrl?: string;
   objectCount: number;
+  objectList: string[];
   verified: boolean;
 }
 
@@ -78,6 +77,7 @@ export default function MergeTokensPage() {
   // tasks
   const [tasks, setTasks] = useState<MergeTask[]>([]);
   const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0));
+  const [gasEstimate, setGasEstimate] = useState<string>("—");
 
   /* ------------------------ fetch balances ------------------------- */
   const fetchCoins = useCallback(async () => {
@@ -87,21 +87,11 @@ export default function MergeTokensPage() {
 
     const metas = await Promise.all(
       balances.map(async (b) => {
-        // 🚩 逐页拉满 getCoins
-        let cursor: string | null | undefined = undefined;
-        let count = 0;
-
-        do {
-          const page = await client.getCoins({
-            owner: account.address,
-            coinType: b.coinType,
-            cursor,
-            limit: 50, // page size，可自行调大
-          });
-          count += page.data.length;
-          cursor = page.nextCursor;
-        } while (cursor);
-
+        const coins = await fetchAllCoinsByType(
+          client,
+          account.address,
+          b.coinType
+        );
         const meta = await client.getCoinMetadata({ coinType: b.coinType });
 
         return {
@@ -110,6 +100,8 @@ export default function MergeTokensPage() {
           name: meta?.name ?? b.coinType.split("::").pop()!,
           decimals: meta?.decimals ?? 9,
           iconUrl: meta?.iconUrl ?? undefined,
+          objectCount: coins.length,
+          objectList: coins.map((coin) => coin.coinObjectId),
           verified:
             !!meta?.iconUrl ||
             !!meta?.name ||
@@ -121,6 +113,70 @@ export default function MergeTokensPage() {
 
     setCoins(metas);
   }, [account?.address, client]);
+
+  /* ------------------------ estimate gas with dry-run ------------------------ */
+    // Helper for gas estimation
+  const getTotalGasUsedUpperBound = (data: any): BigInt | undefined => {
+    const gasSummary = data.gasUsed;
+    return gasSummary
+      ? BigInt(gasSummary.computationCost) +
+          ( BigInt(gasSummary.storageCost))
+          - ( BigInt(gasSummary.storageRebate))
+      : undefined;
+  };
+  const estimateGas = useCallback(async () => {
+    if (!account?.address || tasks.length === 0) return;
+
+    const tx = new Transaction();
+    tx.setSender(account.address);
+
+    // Prepare the transaction from tasks
+    for (const task of tasks) {
+      const requiredCount = task.sources + 1;
+      const coinMeta = coins.find(
+        (meta) => meta.coinType === task.coin.coinType
+      );
+
+      if (!coinMeta) {
+        toast({
+          title: "Error",
+          description: `CoinMeta for ${task.coin.symbol} not found`,
+        });
+        return;
+      }
+
+      const ids = coinMeta.objectList;
+
+      if (ids.length < requiredCount) {
+        toast({
+          title: "Not enough coin objects",
+          description: `${task.coin.symbol}: Required ${requiredCount}, but found ${ids.length}`,
+        });
+        return;
+      }
+
+      const sourceId = ids[0]; // Use saved objectId
+      const mergeList = ids.slice(1); // Get remaining objectIds
+      if (mergeList.length > 0 && task.coin.coinType !== "0x2::sui::SUI") {
+        tx.mergeCoins(
+          tx.object(sourceId),
+          mergeList.map((id) => tx.object(id))
+        );
+      }
+    }
+
+    // Simulate the transaction to estimate gas
+    try {
+      const dryRunTxBytes: Uint8Array = await tx.build({ client });
+      const txEffects = await client.dryRunTransactionBlock({ transactionBlock: dryRunTxBytes });
+      const gasEstimation = getTotalGasUsedUpperBound(txEffects.effects); // Estimated gas from dry-run
+      // console.log(gasEstimation / BigInt(1e9))
+      setGasEstimate(gasEstimation ? (Number(gasEstimation) / 1e9).toString() : "—");
+    } catch (error) {
+      console.error("Error estimating gas:", error);
+      setGasEstimate("—");
+    }
+  }, [account?.address, tasks, coins, client]);
 
   /* ------------------------ fetch gas price ------------------------ */
   const fetchGasPrice = useCallback(async () => {
@@ -134,10 +190,8 @@ export default function MergeTokensPage() {
   }, [fetchCoins]);
 
   useEffect(() => {
-    fetchGasPrice();
-    const t = setInterval(fetchGasPrice, 60_000);
-    return () => clearInterval(t);
-  }, [fetchGasPrice]);
+     estimateGas();
+  }, [tasks, coins, estimateGas]);
 
   /* --------------------------- derived ----------------------------- */
   const filteredCoins = useMemo(() => {
@@ -164,8 +218,8 @@ export default function MergeTokensPage() {
     return (Number(BigInt(GAS_BUDGET) * gasPrice) / 1e9).toFixed(4);
   }, [gasPrice]);
 
-  const canAdd =
-    selected &&
+  const canAdd = selected;
+  selected &&
     (mergeAll
       ? selected.objectCount > 1
       : sources > 0 && sources < selected.objectCount);
@@ -199,7 +253,6 @@ export default function MergeTokensPage() {
   /* ----------------------------- send tx --------------------------- */
   const handleSend = async () => {
     if (!account?.address || tasks.length === 0) return;
-
     const tx = new Transaction();
     tx.setSender(account.address);
     tx.setGasBudget(GAS_BUDGET);
@@ -207,12 +260,20 @@ export default function MergeTokensPage() {
     for (const task of tasks) {
       const requiredCount = task.sources + 1;
 
-      const coins = await fetchAllCoinsByType(
-        client,
-        account.address,
-        task.coin.coinType
+      const coinMeta = coins.find(
+        (meta) => meta.coinType === task.coin.coinType
       );
-      const ids = coins.map((c) => c.coinObjectId);
+
+      if (!coinMeta) {
+        toast({
+          title: "Error",
+          description: `CoinMeta for ${task.coin.symbol} not found`,
+        });
+        return;
+      }
+
+
+      const ids = coinMeta.objectList;
 
       if (ids.length < requiredCount) {
         toast({
@@ -222,12 +283,14 @@ export default function MergeTokensPage() {
         return;
       }
 
-      const [targetId, ...sourceIds] = ids.slice(0, requiredCount);
-
-      tx.mergeCoins(
-        tx.object(targetId),
-        sourceIds.map((id) => tx.object(id))
-      );
+      const sourceId = ids[0]; // 使用保存的 objectId
+      const mergeList = ids.slice(1); // 获取剩余的 objectIds
+      if (mergeList.length > 0 && task.coin.coinType !== "0x2::sui::SUI") {
+        tx.mergeCoins(
+          tx.object(sourceId),
+          mergeList.map((id) => tx.object(id))
+        );
+      }
     }
 
     signAndExecute(
@@ -429,7 +492,7 @@ export default function MergeTokensPage() {
           <div className="flex items-center gap-1">
             <span className="opacity-70">Gas estimate:</span>
             <img src="/images/sui.svg" className="w-4 h-4" />
-            <span>{estimatedGasSui}</span>
+            <span>{gasEstimate}</span>
           </div>
 
           <div className="flex gap-2">

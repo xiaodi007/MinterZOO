@@ -201,7 +201,7 @@ export default function CreateCoinForm() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="font-medium text-gray-300">Project name</div>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Please select a file"/>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Please enter a name"/>
         </div>
         <div className="space-y-2">
           <div className="font-medium text-gray-300">Ticker</div>
