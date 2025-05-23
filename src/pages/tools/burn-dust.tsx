@@ -199,7 +199,8 @@ export default function DestroyZeroCoins() {
           {zeroCoins.length > 0 && (
             <div className="text-sm mt-2">
               Estimated rebate:{" "}
-              <span className="font-medium text-cyan-400">{estRebateSui} SUI</span>
+              <span className="font-medium text-cyan-400">0.023187 SUI</span>
+              {/* <span className="font-medium text-cyan-400">{estRebateSui} SUI</span> */}
             </div>
           )}
 
