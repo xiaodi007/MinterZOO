@@ -36,17 +36,10 @@ export default function Footer() {
 
       {/* playful links */}
       <div className="flex gap-4 pt-1">
-        <Link href="https://github.com/your-repo" className="hover:underline underline-offset-4">
+        <Link href="https://github.com/xiaodi007/MinterZOO" className="hover:underline underline-offset-4">
           GitHub
         </Link>
-        <span className="opacity-30 select-none">•</span>
-        <Link href="/roadmap" className="hover:underline underline-offset-4">
-          Roadmap
-        </Link>
-        <span className="opacity-30 select-none">•</span>
-        <Link href="/bug-bounty" className="hover:underline underline-offset-4">
-          Bug Bounty 🐛
-        </Link>
+
       </div>
 
       <span className="opacity-50 text-xs">© {new Date().getFullYear()} MinterZOO – built during the Sui Hackathon</span>
